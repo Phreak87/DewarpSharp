@@ -182,10 +182,8 @@ Module page_dewarp
     End Function
 
     Function resize_to_screen(ByVal src As Mat, Optional ByVal maxw As Object = 1280, Optional ByVal maxh As Object = 700, Optional ByVal copy As Object = False) As Mat
-        Dim height = src.Height
-        Dim width = src.Width
-        Dim scl_x = CDbl(width) / maxw
-        Dim scl_y = CDbl(height) / maxh
+        Dim scl_x = CDbl(src.Width) / maxw
+        Dim scl_y = CDbl(src.Height) / maxh
         Dim scl = Convert.ToInt32(Math.Max(scl_x, scl_y))
 
         If scl > 1.0 Then
@@ -207,9 +205,8 @@ Module page_dewarp
     End Function
 
     Function get_page_extents(ByVal small As Mat) As Object
-        Dim _tup_1 = small.Size
-        Dim height = _tup_1.Height
-        Dim width = _tup_1.Width
+        Dim height = small.Height
+        Dim width = small.Width
         Dim xmin = PAGE_MARGIN_X
         Dim ymin = PAGE_MARGIN_Y
         Dim xmax = width - PAGE_MARGIN_X
@@ -223,24 +220,24 @@ Module page_dewarp
     End Function
 
     Function get_mask(ByVal name As Object, ByVal small As Object, ByVal pagemask As Object, ByVal masktype As Object) As Mat
-        Dim mask As Object
+        Dim mask As New Mat
         Dim sgray As New Mat : CvInvoke.CvtColor(small, sgray, ColorConversion.Rgb2Gray)
 
         If masktype = "text" Then
-            CvInvoke.AdaptiveThreshold(sgray, sgray, 255, AdaptiveThresholdType.MeanC, ThresholdType.BinaryInv, ADAPTIVE_WINSZ, 25)
+            CvInvoke.AdaptiveThreshold(sgray, mask, 255, AdaptiveThresholdType.MeanC, ThresholdType.BinaryInv, ADAPTIVE_WINSZ, 25)
             Dim Box91 As Emgu.CV.Mat = Emgu.CV.CvInvoke.GetStructuringElement(Emgu.CV.CvEnum.ElementShape.Rectangle, New System.Drawing.Size(9, 1), New Drawing.Point(-1, -1)) ' 9,1
             Dim Box13 As Emgu.CV.Mat = Emgu.CV.CvInvoke.GetStructuringElement(Emgu.CV.CvEnum.ElementShape.Rectangle, New System.Drawing.Size(1, 3), New Drawing.Point(-1, -1)) ' 1,3
-            Emgu.CV.CvInvoke.Dilate(sgray, sgray, Box91, New System.Drawing.Point(-1, -1), 1, Emgu.CV.CvEnum.BorderType.Default, Nothing)
-            Emgu.CV.CvInvoke.Erode(sgray, sgray, Box13, New System.Drawing.Point(-1, -1), 1, Emgu.CV.CvEnum.BorderType.Default, Nothing)
+            Emgu.CV.CvInvoke.Dilate(mask, mask, Box91, New System.Drawing.Point(-1, -1), 1, Emgu.CV.CvEnum.BorderType.Default, Nothing)
+            Emgu.CV.CvInvoke.Erode(mask, mask, Box13, New System.Drawing.Point(-1, -1), 1, Emgu.CV.CvEnum.BorderType.Default, Nothing)
         Else
             CvInvoke.AdaptiveThreshold(sgray, sgray, 255, AdaptiveThresholdType.MeanC, ThresholdType.BinaryInv, ADAPTIVE_WINSZ, 7)
             Dim Box31 As Emgu.CV.Mat = Emgu.CV.CvInvoke.GetStructuringElement(Emgu.CV.CvEnum.ElementShape.Rectangle, New System.Drawing.Size(3, 1), New Drawing.Point(-1, -1)) ' 3,1
             Dim Box82 As Emgu.CV.Mat = Emgu.CV.CvInvoke.GetStructuringElement(Emgu.CV.CvEnum.ElementShape.Rectangle, New System.Drawing.Size(8, 2), New Drawing.Point(-1, -1)) ' 8,2
-            Emgu.CV.CvInvoke.Erode(sgray, sgray, Box31, New System.Drawing.Point(-1, -1), 3, Emgu.CV.CvEnum.BorderType.Default, Nothing)
-            Emgu.CV.CvInvoke.Dilate(sgray, sgray, Box82, New System.Drawing.Point(-1, -1), 1, Emgu.CV.CvEnum.BorderType.Default, Nothing)
+            Emgu.CV.CvInvoke.Erode(mask, mask, Box31, New System.Drawing.Point(-1, -1), 3, Emgu.CV.CvEnum.BorderType.Default, Nothing)
+            Emgu.CV.CvInvoke.Dilate(mask, mask, Box82, New System.Drawing.Point(-1, -1), 1, Emgu.CV.CvEnum.BorderType.Default, Nothing)
         End If
 
-        Return np.minimum(sgray, pagemask)
+        Return np.minimum(mask, pagemask)
     End Function
 
     Function interval_measure_overlap(ByVal int_a As Object, ByVal int_b As Object) As Object
@@ -343,29 +340,37 @@ Module page_dewarp
         End If
     End Function
 
-    Function make_tight_mask(ByVal contour As Object, ByVal xmin As Object, ByVal ymin As Object, ByVal width As Object, ByVal height As Object) As Object
-        Dim tight_mask = np.zeros(Tuple.Create(height, width), dtype:="uint8")
-        'Dim tight_contour = contour - np.array(Tuple.Create(xmin, ymin)).reshape(Tuple.Create(-1, 1, 2))
+    Function make_tight_mask(ByVal contour As VectorOfPoint, ByVal xmin As Object, ByVal ymin As Object, ByVal width As Object, ByVal height As Object) As Object
+        Dim tight_mask = np.zeros(Tuple.Create(height, width), dtype:="uint8") ' OK
+
+        Dim tight_object As New Emgu.CV.Util.VectorOfPoint(CInt(xmin * ymin))
+        Dim tight_Contour1 As New Mat
+        Emgu.CV.CvInvoke.Subtract(contour, tight_object, tight_Contour1)
+
+        'Dim tight_contour = contour - np.array(Tuple.Create(xmin, ymin)) ' .reshape(Tuple.Create(-1, 1, 2))
         Dim Scal As New MCvScalar(1, 1, 1)
         'CvInvoke.DrawContours(tight_mask, New List(Of Object) From {tight_contour}, 0, Scal, -1)
         Return tight_mask
     End Function
 
     Function get_contours(ByVal name As Object, ByVal small As Object, ByVal pagemask As Object, ByVal masktype As Object) As Object
-        Dim mask As Mat = get_mask(name, small, pagemask, masktype)
-        Dim contours As New VectorOfVectorOfPoint()
-        CvInvoke.FindContours(mask, contours, New Mat, RetrType.External, ChainApproxMethod.ChainApproxNone)
+        Dim mask As Mat = get_mask(name, small, pagemask, masktype) ' OK
+        Dim contours As New VectorOfVectorOfPoint()                 ' OK
+        CvInvoke.FindContours(mask,
+                              contours,
+                              New Mat,
+                              RetrType.External,
+                              ChainApproxMethod.ChainApproxNone)    ' OK
         Dim contours_out = New List(Of Object)()
 
-        For i As Integer = 0 To contours.Size - 1
-            Dim rect = CvInvoke.BoundingRectangle(contours(i))
-            Dim xmin = rect.X
-            Dim ymin = rect.Y
-            Dim width = rect.Width
-            Dim height = rect.Height
+        For i As Integer = 0 To contours.Size - 1                   ' OK 
+            Dim rect = CvInvoke.BoundingRectangle(contours(i))      ' OK
 
-            If width < TEXT_MIN_WIDTH OrElse height < TEXT_MIN_HEIGHT OrElse width < TEXT_MIN_ASPECT * height Then Continue For
-            Dim tight_mask = make_tight_mask(contours(i), xmin, ymin, width, height)
+            If rect.Width < TEXT_MIN_WIDTH OrElse
+                rect.Height < TEXT_MIN_HEIGHT OrElse
+                rect.Width < TEXT_MIN_ASPECT * rect.Height Then Continue For ' OK
+
+            Dim tight_mask = make_tight_mask(contours(i), rect.X, rect.Y, rect.Width, rect.Height)
             'If tight_mask.sum(axis:=0).max() > TEXT_MAX_THICKNESS Then Continue For
             contours_out.Add(New ContourInfo(contours(i), rect, tight_mask))
         Next
@@ -695,10 +700,10 @@ Module page_dewarp
         Dim outfiles = New List(Of Object)()
 
         'For Each imgfile In Environment.CommandLine
-        Dim imgfile As String = "Test.jpg"
-        Dim img = CvInvoke.Imread(imgfile)
-        Dim small = resize_to_screen(img)
-        Dim name As String = imgfile
+        Dim imgfile As String = "Test.jpg"  ' OK
+        Dim img = CvInvoke.Imread(imgfile)  ' OK
+        Dim small = resize_to_screen(img)   ' OK
+        Dim name As String = imgfile        ' OK
         Dim basename As String = Environment.CurrentDirectory
 
         Dim _tup_2 = get_page_extents(small)
@@ -745,7 +750,7 @@ Class np
         'Throw New NotImplementedException
         Return Nothing
     End Function
-    Shared Function arctan2(ByVal a, ByVal b)
+    Shared Function arctan2(ByVal a As Double, ByVal b As Double)
         'Throw New NotImplementedException
         Return Math.Atan2(a, b)
     End Function
@@ -758,7 +763,7 @@ Class np
         Return Nothing
     End Function
     Shared Function array(ByVal a As Object, Optional ByVal dtype As Object = Nothing)
-        'Throw New NotImplementedException
+        Return Mat.Zeros(a.item1, a.item2, DepthType.Cv8U, 1)
         Return Nothing
     End Function
     Shared Function range()
@@ -798,8 +803,7 @@ Class np
         Throw New NotImplementedException : Return Nothing
     End Function
     Shared Function minimum(ByVal a As Mat, ByVal b As Mat) As Mat
-        Dim c As New Mat : Emgu.CV.CvInvoke.Min(a, b, c)
-        Return c
+        Dim c As New Mat : Emgu.CV.CvInvoke.Min(a, b, c) : Return c
     End Function
 End Class
 Class scipy
