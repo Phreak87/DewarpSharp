@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 ######################################################################
 # page_dewarp.py - Proof-of-concept of page-dewarping based on a
 # "cubic sheet" model. Requires OpenCV (version 3 or greater),
@@ -377,7 +377,6 @@ class ContourInfo(object):
         self.angle = np.arctan2(self.tangent[1], self.tangent[0])
 
         clx = [self.proj_x(point) for point in contour]
-
         lxmin = min(clx)
         lxmax = max(clx)
 
@@ -385,6 +384,9 @@ class ContourInfo(object):
 
         self.point0 = self.center + self.tangent * lxmin
         self.point1 = self.center + self.tangent * lxmax
+		
+        print (self.point0)
+        print ()
 
         self.pred = None
         self.succ = None
@@ -420,6 +422,8 @@ def generate_candidate_edge(cinfo_a, cinfo_b):
     # we want the largest overlap in x to be small
     x_overlap = max(x_overlap_a, x_overlap_b)
 
+    test1 = [3.34223431, 0.92667807]
+    test = np.linalg.norm(test1)
     dist = np.linalg.norm(cinfo_b.point0 - cinfo_a.point1)
 
     if (dist > EDGE_MAX_LENGTH or
@@ -434,21 +438,8 @@ def generate_candidate_edge(cinfo_a, cinfo_b):
 def make_tight_mask(contour, xmin, ymin, width, height):
 
     tight_mask = np.zeros((height, width), dtype=np.uint8)
-    print ('C1: ')
-    print (contour)
-    print ('TM: ', height, width)
-    print (tight_mask)
-    print ('NP: ', xmin, ymin)
-    print (np.array((xmin, ymin)).reshape((-1, 1, 2)))
-    print ('C2: ')
-    print (contour - np.array((xmin, ymin)).reshape((-1, 1, 2)))
-    print ('END')
-    quit()
     tight_contour = contour - np.array((xmin, ymin)).reshape((-1, 1, 2))
-	
-    cv2.drawContours(tight_mask, [tight_contour], 0,
-                     (1, 1, 1), -1)
-
+    cv2.drawContours(tight_mask, [tight_contour], 0, (1, 1, 1), -1)
     return tight_mask
 
 
@@ -473,6 +464,7 @@ def get_contours(name, small, pagemask, masktype):
 
         tight_mask = make_tight_mask(contour, xmin, ymin, width, height)
 
+        test = tight_mask.sum(axis=0).max()
         if tight_mask.sum(axis=0).max() > TEXT_MAX_THICKNESS:
             continue
 
@@ -874,7 +866,7 @@ def main():
 
         pagemask, page_outline = get_page_extents(small)
 
-        cinfo_list = get_contours(name, small, pagemask, 'text')
+        cinfo_list = get_contours(name, small, pagemask, 'text') # ok cross
         spans = assemble_spans(name, small, pagemask, cinfo_list)
 
         if len(spans) < 3:
