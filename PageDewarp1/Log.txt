@@ -236,7 +236,7 @@ and resized to 490x653
 with 554 points.
   initial objective is 0.07442892629230063
   optimizing 600 parameters...
-  optimization took 41.42 sec.
+  optimization took 43.44 sec.
   final objective is 0.005022708200877036
   got page dims 1.190133497894041 x 1.8458475300970718
   output will be 1952x3024

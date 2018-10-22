@@ -97,6 +97,7 @@ def debug_show(name, step, text, display):
     if DEBUG_OUTPUT != 'file':
 
         image = display.copy()
+        image = cv2.resize(image, (0, 0), None, 10, 10, cv2.INTER_AREA)
         height = image.shape[0]
 
         cv2.putText(image, text, (16, height-16),
@@ -440,6 +441,7 @@ def make_tight_mask(contour, xmin, ymin, width, height):
     tight_mask = np.zeros((height, width), dtype=np.uint8)
     tight_contour = contour - np.array((xmin, ymin)).reshape((-1, 1, 2))
     cv2.drawContours(tight_mask, [tight_contour], 0, (1, 1, 1), -1)
+    # debug_show('tight', 0.0, 'original', tight_mask)
     return tight_mask
 
 
@@ -550,12 +552,16 @@ def sample_spans(shape, spans):
         for cinfo in span:
 
             yvals = np.arange(cinfo.mask.shape[0]).reshape((-1, 1))
-            totals = (yvals * cinfo.mask).sum(axis=0)
-            means = totals / cinfo.mask.sum(axis=0)
+            totals = (yvals * cinfo.mask)
+            # debug_show("TestPic", 2, 'spans',cinfo.mask )
+            totals = totals.sum(axis=0)
+            means1 = cinfo.mask.sum(axis=0)
+            means = totals / means1
 
             xmin, ymin = cinfo.rect[:2]
 
             step = SPAN_PX_PER_STEP
+            a1 = len (means)
             start = ((len(means)-1) % step) // 2
 
             contour_points += [(x+xmin, means[x]+ymin)
@@ -578,11 +584,14 @@ def keypoints_from_samples(name, small, pagemask, page_outline,
     all_weights = 0
 
     for points in span_points:
-
+        test = points.reshape((-1, 2))
         _, evec = cv2.PCACompute(points.reshape((-1, 2)),
                                  None, maxComponents=1)
 
-        weight = np.linalg.norm(points[-1] - points[0])
+        testp1 = points[-1]
+        testp2 = points[0]
+        test2 = points[-1] - points[0]
+        weight = np.linalg.norm(test2)
 
         all_evecs += evec * weight
         all_weights += weight

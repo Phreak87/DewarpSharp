@@ -4,7 +4,6 @@ Imports Emgu.CV.Util
 Imports Emgu.CV.CvEnum
 Imports Emgu.CV.Structure
 Imports System.Linq
-
 Imports System.Collections.Generic
 
 Public Class Form1
@@ -19,6 +18,8 @@ Public Class Form1
 End Class
 
 Module page_dewarp
+
+#Region "Parameters"
     Public PAGE_MARGIN_X As Object = 50
     Public PAGE_MARGIN_Y As Object = 20
     Public OUTPUT_ZOOM As Object = 1.0
@@ -42,36 +43,52 @@ Module page_dewarp
     Public DEBUG_LEVEL As Object = 0
     Public DEBUG_OUTPUT As Object = "file"
     Public WINDOW_NAME As Object = "Dewarp"
-    Public K = {{FOCAL_LENGTH, 0, 0}, {0, FOCAL_LENGTH, 0}, {0, 0, 1}}
-    Public CCOLORS = {
-                {255, 0, 0, 0}, {255, 63, 0, 0}, {255, 127, 0, 0}, {255, 191, 0, 0},
-                {255, 255, 0, 0}, {191, 255, 0, 0}, {127, 255, 0, 0}, {63, 255, 0, 0},
-                {0, 255, 0, 0}, {0, 255, 63, 0}, {0, 255, 127, 0}, {0, 255, 191, 0},
-                {0, 255, 255, 0}, {0, 191, 255, 0}, {0, 127, 255, 0}, {0, 63, 255, 0},
-                {0, 0, 255, 0}, {63, 0, 255, 0}, {127, 0, 255, 0}, {191, 0, 255, 0},
-                {255, 0, 255, 0}, {255, 0, 191, 0}, {255, 0, 127, 0}, {255, 0, 63, 0}
- }
+    Public K As Double(,) = {{FOCAL_LENGTH, 0, 0}, {0, FOCAL_LENGTH, 0}, {0, 0, 1}}
+    Public CCOLORS As List(Of Double()) = {
+                New Double() {255, 0, 0, 0},
+                New Double() {255, 63, 0, 0},
+                New Double() {255, 127, 0, 0},
+                New Double() {255, 191, 0, 0},
+                New Double() {255, 255, 0, 0},
+                New Double() {191, 255, 0, 0},
+                New Double() {127, 255, 0, 0},
+                New Double() {63, 255, 0, 0},
+                New Double() {0, 255, 0, 0},
+                New Double() {0, 255, 63, 0},
+                New Double() {0, 255, 127, 0},
+                New Double() {0, 255, 191, 0},
+                New Double() {0, 255, 255, 0},
+                New Double() {0, 191, 255, 0},
+                New Double() {0, 127, 255, 0},
+                New Double() {0, 63, 255, 0},
+                New Double() {0, 0, 255, 0},
+                New Double() {63, 0, 255, 0},
+                New Double() {127, 0, 255, 0},
+                New Double() {191, 0, 255, 0},
+                New Double() {255, 0, 255, 0},
+                New Double() {255, 0, 191, 0},
+                New Double() {255, 0, 127, 0},
+                New Double() {255, 0, 63, 0}
+ }.ToList
+#End Region
 
-
-    Function debug_show(ByVal name As Object, ByVal [step] As Object, ByVal text As Object, ByVal display As Object) As Object
+    Sub debug_show(ByVal name As Object, ByVal [step] As Object, ByVal text As Object, ByVal display As Object)
         If DEBUG_OUTPUT <> "screen" Then
             Dim filetext = text.replace(" ", "_")
-            Dim outfile = name & "_debug_" & str([step]) & "_" + filetext & ".png"
-            'cv2.imwrite(outfile, display)
+            Dim outfile = name & "_debug_" & Str([step]) & "_" + filetext & ".png"
+            Emgu.CV.CvInvoke.Imwrite(outfile, display)
         End If
 
         If DEBUG_OUTPUT <> "file" Then
             Dim image = display.copy()
             Dim height = image.shape(0)
-            'cv2.putText(image, text, Tuple.Create(16, height - 16), cv2.FONT_HERSHEY_SIMPLEX, 1.0, Tuple.Create(0, 0, 0), 3, cv2.LINE_AA)
-            'cv2.putText(image, text, Tuple.Create(16, height - 16), cv2.FONT_HERSHEY_SIMPLEX, 1.0, Tuple.Create(255, 255, 255), 1, cv2.LINE_AA)
-            'cv2.imshow(WINDOW_NAME, image)
-
-            'While cv2.waitKey(5) < 0
-            'End While
+            Emgu.CV.CvInvoke.PutText(image, text, New Drawing.Point(16, height - 16), FontFace.HersheySimplex, 1.0, New MCvScalar(0, 0, 0), 3, LineType.AntiAlias)
+            Emgu.CV.CvInvoke.PutText(image, text, New Drawing.Point(16, height - 16), FontFace.HersheySimplex, 1.0, New MCvScalar(255, 255, 255), 1, LineType.AntiAlias)
+            Emgu.CV.CvInvoke.Imshow(WINDOW_NAME, image)
+            While Emgu.CV.CvInvoke.WaitKey(5) < 0
+            End While
         End If
-    End Function
-
+    End Sub
     Function round_nearest_multiple(ByVal i As Object, ByVal factor As Object) As Object
         i = Convert.ToInt32(i)
         Dim [rem] = i Mod factor
@@ -83,54 +100,63 @@ Module page_dewarp
         End If
     End Function
 
-    Function pix2norm(ByVal shape As Object, ByVal pts As Object) As Object
-        Dim _tup_1 = shape(2)
-        Dim height = _tup_1.Item1
-        Dim width = _tup_1.Item2
+    Function pix2norm(ByVal shape As System.Drawing.Size, pts As Drawing.PointF())
+        Dim height = shape.Height
+        Dim width = shape.Width
         Dim scl = 2.0 / Math.Max(height, width)
-        Dim offset = np.array(New List(Of Object) From {
-            width,
-            height
-        }, dtype:=pts.dtype).reshape(Tuple.Create(-1, 1, 2)) * 0.5
-        Return (pts - offset) * scl
+        Dim offset = {width * 0.5, height * 0.5}
+        For i As Integer = 0 To pts.Count - 1
+            pts(i).X = (pts(i).X - offset(0)) * scl
+            pts(i).Y = (pts(i).Y - offset(1)) * scl
+        Next
+        Return pts
+    End Function
+    Function pix2norm(ByVal shape As System.Drawing.Size, ByVal pts As List(Of Double())) As List(Of Double())
+        Dim height = shape.Height
+        Dim width = shape.Width
+        Dim scl = 2.0 / Math.Max(height, width)
+        Dim offset = {width * 0.5, height * 0.5}
+        For Each Entry In pts
+            Entry(0) = (Entry(0) - offset(0)) * scl
+            Entry(1) = (Entry(1) - offset(1)) * scl
+        Next
+        Return pts
     End Function
 
-    Function norm2pix(ByVal shape As Object, ByVal pts As Object, ByVal as_integer As Object) As Object
-        'Dim _tup_1 = shape(2)
-        'Dim height = _tup_1.Item1
-        'Dim width = _tup_1.Item2
-        'Dim scl = Math.Max(height, width) * 0.5
+    Function norm2pix(ByVal shape As System.Drawing.Size, ByVal pts As List(Of Double()), ByVal as_integer As Boolean) As Integer
+        Dim height = shape.Height
+        Dim width = shape.Width
+        Dim scl = Math.Max(height, width) * 0.5
         'Dim offset = { 0.5 * width, 0.5 * height }, pts.dtype).reshape(Tuple.Create(-1, 1, 2))
         'Dim rval = pts * scl + offset
 
-        'If as_integer Then
-        '    Return CInt((rval + 0.5))
-        'Else
-        '    Return rval
-        'End If
+        If as_integer Then
+            'Return CInt((rval + 0.5))
+        Else
+            'Return rval
+        End If
     End Function
 
-    Function fltp(ByVal point As Object) As Object
-        ' Return tuple(CInt(point.flatten()))
-        Return New Mat(CInt(point.flatten()))
+    Function fltp(ByVal point As Double()) As System.Drawing.Point
+        Return New System.Drawing.Point(point(0), point(1))
     End Function
 
     Function draw_correspondences(ByVal img As Object, ByVal dstpoints As Object, ByVal projpts As Object) As Object
-        'Dim display = img.copy()
-        'dstpoints = norm2pix(img.shape, dstpoints, True)
-        'projpts = norm2pix(img.shape, projpts, True)
+        Dim display = img.copy()
+        dstpoints = norm2pix(img.shape, dstpoints, True)
+        projpts = norm2pix(img.shape, projpts, True)
 
-        'For Each _tup_1 In New List(Of Object) From {
-        '    Tuple.Create(projpts, Tuple.Create(255, 0, 0)),
-        '    Tuple.Create(dstpoints, Tuple.Create(0, 0, 255))
-        '}
-        '    Dim pts = _tup_1.Item1
-        '    Dim color = _tup_1.Item2
+        For Each _tup_1 In New List(Of Object) From {
+            Tuple.Create(projpts, Tuple.Create(255, 0, 0)),
+            Tuple.Create(dstpoints, Tuple.Create(0, 0, 255))
+        }
+            Dim pts = _tup_1.Item1
+            Dim color = _tup_1.Item2
 
-        '    For Each point In pts
-        '        CvInvoke.Circle(display, fltp(point), 3, color, -1, LineType.AntiAlias)
-        '    Next
-        'Next
+            For Each point In pts
+                CvInvoke.Circle(display, fltp(point), 3, color, -1, LineType.AntiAlias)
+            Next
+        Next
 
         'For Each _tup_2 In zip(projpts, dstpoints)
         '    Dim point_a = _tup_2.Item1
@@ -138,24 +164,37 @@ Module page_dewarp
         '    cv2.line(display, fltp(point_a), fltp(point_b), Tuple.Create(255, 255, 255), 1, cv2.LINE_AA)
         'Next
 
-        'Dim [function] As String = "Test"
-        'Dim x As Tuple(Of String, Integer, Object)
+        Dim [function] As String = "Test"
+        Dim x As Tuple(Of String, Integer, Object)
 
-        'Return display
+        Return display
     End Function
 
-    Function get_default_params(ByVal corners As Object, ByVal ycoords As Object, ByVal xcoords As Object) As Object
-        'Dim page_width = np.linalg.norm(corners(1) - corners(0))
-        'Dim page_height = np.linalg.norm(corners(-1) - corners(0))
-        'Dim rough_dims = Tuple.Create(page_width, page_height)
-        'Dim cubic_slopes = {0.0, 0.0}
-        'Dim corners_object3d = {{0, 0, 0}, {page_width, 0, 0}, {page_width, page_height, 0}, {0, page_height, 0}}
-        'Dim _tup_1 : CvInvoke.SolvePnP(corners_object3d, corners, K, New MCvScalar(5), Nothing, _tup_1)
-        'Dim rvec = _tup_1.Item2
-        'Dim tvec = _tup_1.Item3
-        'Dim span_counts = xcoords.[Select](Function(xc) xc.Count)
+    Function get_default_params(ByVal corners As Object,
+                                ByVal ycoords As List(Of Double()),
+                                ByVal xcoords As List(Of Double())) As Object
+        Dim page_width = np.linalg.norm(np.Substract(corners.item2, corners.item1))
+        Dim page_height = np.linalg.norm(np.Substract(corners.item3, corners.item1))
+        Dim rough_dims = Tuple.Create(page_width, page_height)
+        Dim cubic_slopes As Double() = {0.0, 0.0}
+        Dim corners_object3d = {{0, 0, 0}, {page_width, 0, 0}, {page_width, page_height, 0}, {0, page_height, 0}}
+
+        Dim CObj3D As Matrix(Of Double) = np.ToMatrix(corners_object3d)
+        Dim CornOB As Matrix(Of Double) = np.ToMatrix(corners)
+        Dim KMat As Matrix(Of Double) = np.ToMatrix(K)
+        Dim Scal As New Mat(5, 1, DepthType.Cv16U, 1)
+        Dim RES As New Mat
+        Dim R As New Mat
+
+
+        CvInvoke.SolvePnP(CObj3D, CornOB, KMat, Scal, New Mat, RES)
+        Dim rvec = RES.GetData(0)
+        Dim tvec = RES.GetData(1)
+
+        Dim span_counts = xcoords.[Select](Function(xc) xc.Count)
         'Dim _params = np.hstack(Tuple.Create(np.array(rvec).flatten(), np.array(tvec).flatten(), np.array(cubic_slopes).flatten(), ycoords.flatten()) + tuple.Create(xcoords))
-        'Return Tuple.Create(rough_dims, span_counts, _params)
+        Dim _params = Nothing
+        Return Tuple.Create(rough_dims, span_counts, _params)
     End Function
 
     Function project_xy(ByVal xy_coords As Object, ByVal pvec As Object) As Object
@@ -171,7 +210,7 @@ Module page_dewarp
         xy_coords = xy_coords.reshape(Tuple.Create(-1, 2))
         Dim z_coords = np.polyval(poly, xy_coords(":", 0))
         Dim objpoints = np.hstack(Tuple.Create(xy_coords, z_coords.reshape(Tuple.Create(-1, 1))))
-        Dim _tup_2 = CvInvoke.ProjectPoints(objpoints, pvec(RVEC_IDX), pvec(TVEC_IDX), K, np.zeros(5))
+        Dim _tup_2 = CvInvoke.ProjectPoints(objpoints, pvec(RVEC_IDX), pvec(TVEC_IDX), np.ToMatrix(K), np.zeros(5))
         Dim image_points = _tup_2.ToArray
         Return image_points
     End Function
@@ -205,19 +244,22 @@ Module page_dewarp
         Return np.ones(Tuple.Create(height, width), dtype:="uint8")
     End Function
 
-    Function get_page_extents(ByVal small As Mat) As Object
-        Dim height = small.Height
-        Dim width = small.Width
-        Dim xmin = PAGE_MARGIN_X
-        Dim ymin = PAGE_MARGIN_Y
-        Dim xmax = width - PAGE_MARGIN_X
-        Dim ymax = height - PAGE_MARGIN_Y
+    Function get_page_extents(ByVal small As Mat) As Tuple(Of Mat, Integer(,))
+        ' -------------------------------------------------
+        ' Generiert den Rahmen für das Dokument as neues Mat
+        ' -------------------------------------------------
+        Dim height As Integer = small.Height
+        Dim width As Integer = small.Width
+        Dim xmin As Integer = PAGE_MARGIN_X
+        Dim ymin As Integer = PAGE_MARGIN_Y
+        Dim xmax As Integer = width - PAGE_MARGIN_X
+        Dim ymax As Integer = height - PAGE_MARGIN_Y
         Dim page = Mat.Zeros(height, width, DepthType.Cv8U, 1)
         Dim R1 As New System.Drawing.Rectangle(xmin, ymin, xmax - xmin, ymax - ymin)
         Dim C1 As New MCvScalar(255, 255, 255) ' Color
         CvInvoke.Rectangle(page, R1, C1, -1)
         Dim outline = {{xmin, ymin}, {xmin, ymax}, {xmax, ymax}, {xmax, ymin}}
-        Return Tuple.Create(page, outline)
+        Return Tuple.Create(Of Mat, Integer(,))(page, outline)
     End Function
 
     Function get_mask(ByVal name As Object, ByVal small As Object, ByVal pagemask As Object, ByVal masktype As Object) As Mat
@@ -241,8 +283,8 @@ Module page_dewarp
         Return np.minimum(mask, pagemask)
     End Function
 
-    Function interval_measure_overlap(ByVal int_a As Tuple(Of Double, Double), ByVal int_b As Tuple(Of Double, Double)) As Object
-        Return Math.Min(int_a.Item1, int_b.Item1) - Math.Max(int_a.Item2, int_b.Item2)
+    Function interval_measure_overlap(ByVal int_a As Tuple(Of Double, Double), ByVal int_b As Tuple(Of Double, Double)) As Double
+        Return Math.Min(int_a.Item2, int_b.Item2) - Math.Max(int_a.Item1, int_b.Item1)
     End Function
 
     Function angle_dist(ByVal angle_b As Object, ByVal angle_a As Object) As Object
@@ -279,56 +321,6 @@ Module page_dewarp
         Return Tuple.Create(center, tangent)
     End Function
 
-    Public Class ContourInfo
-        Property contour As VectorOfPoint
-        Property rect
-        Property mask
-        Property center
-        Property tangent
-        Property angle
-        Property local_xrng As Tuple(Of Double, Double)
-        Property point0 As Double()
-        Property point1 As Double()
-        Property pred
-        Property succ
-
-        Public Sub New(ByVal contour As Object, ByVal rect As Object, ByVal mask As Object)
-            Me.contour = contour
-            Me.rect = rect
-            Me.mask = mask
-            Dim _tup_1 = blob_mean_and_tangent(contour)
-            Me.center = _tup_1.Item1
-            Me.tangent = _tup_1.Item2
-            Me.angle = np.arctan2(Me.tangent(1), Me.tangent(0))
-            'Dim clx = contour.[Select](Function(point) Me.proj_x(point))
-            Dim clx As New List(Of Double)
-            For Each entry In Me.contour.ToArray
-                clx.Add(proj_x(entry))
-            Next
-            Dim lxmin = clx.Min()
-            Dim lxmax = clx.Max()
-            Me.local_xrng = Tuple.Create(lxmin, lxmax)
-
-            Me.point0 = np.add(np.mul(tangent, lxmin), center)
-            Me.point1 = np.add(np.mul(tangent, lxmax), center)
-            Me.pred = Nothing
-            Me.succ = Nothing
-        End Sub
-
-        Public Overridable Function proj_x(ByVal point As Drawing.Point) As Object
-            Return proj_x({CDbl(point.X), CDbl(point.Y)})
-        End Function
-        Public Overridable Function proj_x(ByVal point As Double()) As Object
-            Return np.dot(Me.tangent, np.SubstractArrays({CDbl(point(0)), CDbl(point(1))}, center))
-        End Function
-
-        Public Overridable Function local_overlap(ByVal other As ContourInfo) As Object
-            Dim xmin As Double = Me.proj_x(other.point0)
-            Dim xmax As Double = Me.proj_x(other.point1)
-            Return interval_measure_overlap(Me.local_xrng, Tuple.Create(xmin, xmax))
-        End Function
-    End Class
-
     Function generate_candidate_edge(ByVal cinfo_a As ContourInfo, ByVal cinfo_b As ContourInfo) As Object
         If cinfo_a.point0(0) > cinfo_b.point1(0) Then
             Dim tmp = cinfo_a
@@ -338,13 +330,12 @@ Module page_dewarp
 
         Dim x_overlap_a = cinfo_a.local_overlap(cinfo_b)
         Dim x_overlap_b = cinfo_b.local_overlap(cinfo_a)
-        Dim overall_tangent As Double() = np.SubstractArrays(cinfo_b.center, cinfo_a.center) ' cinfo_b.center - cinfo_a.center
+        Dim overall_tangent As Double() = np.Substract(cinfo_b.center, cinfo_a.center) ' cinfo_b.center - cinfo_a.center
         Dim overall_angle = np.arctan2(overall_tangent(1), overall_tangent(0))
         Dim delta_angle = Math.Max(angle_dist(cinfo_a.angle, overall_angle), angle_dist(cinfo_b.angle, overall_angle)) * 180 / Math.PI
         Dim x_overlap = Math.Max(x_overlap_a, x_overlap_b)
 
-        Dim subs = np.SubstractArrays(cinfo_b.point0, cinfo_a.point1)
-        Dim dist = np.linalg.norm({3.34223431, 0.92667807})
+        Dim dist = np.linalg.norm(np.Substract(cinfo_b.point0, cinfo_a.point1))
 
         If dist > EDGE_MAX_LENGTH OrElse x_overlap > EDGE_MAX_OVERLAP OrElse delta_angle > EDGE_MAX_ANGLE Then
             Return Nothing
@@ -355,15 +346,19 @@ Module page_dewarp
     End Function
 
     Function make_tight_mask(ByVal contour As VectorOfPoint, ByVal xmin As Object, ByVal ymin As Object, ByVal width As Object, ByVal height As Object) As Object
-        Dim tight_mask = np.zeros(Tuple.Create(height, width), dtype:="uint8") ' OK
+        Dim tight_mask As Mat = np.zeros(Tuple.Create(height, width), DepthType.Cv8U, 1) ' OK
         Dim Color As New MCvScalar(1, 1, 1)
-
-        'Dim tight_contour = contour - np.array(Tuple.Create(xmin, ymin)).reshape(Tuple.Create(-1, 1, 2))
 
         Dim C1 As New VectorOfPoint
         Dim C2 As New Matrix(Of Double)({{xmin, ymin}})  ' np.array(Tuple.Create(xmin, ymin)).reshape(Tuple.Create(-1, 1, 2))
         Emgu.CV.CvInvoke.Subtract(contour, C2, C1) ' contour - [C2]
         Dim C3 As New VectorOfVectorOfPoint : C3.Push(C1)
+
+        ' -------- just for debug to show the mask structure ---------
+        'Dim tight_mask_debug As Mat = np.zeros(Tuple.Create(height, width), DepthType.Cv8U, 1) ' OK
+        'Dim Color_debug As New MCvScalar(255,255, 255) ' Need other color to view the mask
+        'CvInvoke.DrawContours(tight_mask_debug, C3, 0, Color_debug, -1)
+        ' ------------------------------------------------------------
 
         CvInvoke.DrawContours(tight_mask, C3, 0, Color, -1)
         Return tight_mask
@@ -405,23 +400,15 @@ Module page_dewarp
     End Function
 
     Function assemble_spans(ByVal name As Object, ByVal small As Object, ByVal pagemask As Object, ByVal cinfo_list As List(Of ContourInfo)) As Object
+
         cinfo_list = cinfo_list.OrderBy(Function(x) x.rect.y).ToList ' cinfo_list = cinfo_list.OrderBy(Function(cinfo) cinfo.rect(0)).ToList()
         Dim candidate_edges = New List(Of Object)()
 
-        'for i, cinfo_i in enumerate(cinfo_list):
-        'for j in range(i):
-        '    # note e is of the form (score, left_cinfo, right_cinfo)
-        '    edge = generate_candidate_edge(cinfo_i, cinfo_list[j])
-        '        If edge Is Not None Then
-        '            candidate_edges.append(edge)
-
         For i As Integer = 0 To cinfo_list.Count - 1
-            Dim Entry = cinfo_list(i)
-            For j = 0 To cinfo_list.Count - 1
-                Dim edge = generate_candidate_edge(Entry, cinfo_list(j))
-                If edge IsNot Nothing Then
-                    candidate_edges.Add(edge)
-                End If
+            Dim cinfo_i = cinfo_list(i)
+            For j = 0 To i : If j = i Then Continue For
+                Dim edge = generate_candidate_edge(cinfo_i, cinfo_list(j))
+                If edge IsNot Nothing Then candidate_edges.Add(edge)
             Next
         Next
 
@@ -442,14 +429,14 @@ Module page_dewarp
         While cinfo_list.Count > 0
             Dim cinfo = cinfo_list(0)
 
-            'While cinfo.pred
-            '    cinfo = cinfo.pred
-            'End While
+            While IsNothing(cinfo.pred) = False
+                cinfo = cinfo.pred
+            End While
 
             Dim cur_span = New List(Of ContourInfo)
             Dim width = 0.0
 
-            While cinfo.contour.Size > 0
+            While Not IsNothing(cinfo)
                 cinfo_list.Remove(cinfo)
                 cur_span.Add(cinfo)
                 width += cinfo.local_xrng.Item2 - cinfo.local_xrng.Item1
@@ -459,7 +446,6 @@ Module page_dewarp
 
             If width > SPAN_MIN_WIDTH Then
                 spans.Add(cur_span.ToArray)
-                Exit While
             End If
         End While
 
@@ -468,105 +454,134 @@ Module page_dewarp
         Return spans
     End Function
 
-    Function sample_spans(ByVal shape As Object, ByVal spans As Object) As Object
-        'Dim span_points = New List(Of Object)()
+    Function sample_spans(ByVal shape As Object, ByVal spans As Object) As List(Of List(Of Double()))
+        Dim span_points = New List(Of List(Of Double()))()
 
-        'For Each span In spans
-        '    Dim contour_points = New List(Of Object)()
+        For Each span In spans
+            Dim contour_points = New List(Of Double())
 
-        '    For Each cinfo In span
-        '        Dim yvals = np.arange(cinfo.mask.shape(0)).reshape(Tuple.Create(-1, 1))
-        '        Dim totals = (yvals * cinfo.mask).sum(axis:=0)
-        '        Dim means = totals / cinfo.mask.sum(axis:=0)
-        '        Dim _tup_1 = cinfo.rect(2)
-        '        Dim xmin = _tup_1.Item1
-        '        Dim ymin = _tup_1.Item2
-        '        Dim [step] = SPAN_PX_PER_STEP
-        '        Dim start = (means.Count - 1) Mod [step] / 2
-        '        contour_points += range(start, means.Count, [step]).[Select](Function(x) Tuple.Create(x + xmin, means(x) + ymin))
-        '    Next
+            For Each cinfo In span
+                Dim MatArray As Byte(,) = np.MatToInteger(cinfo.mask)
+                Dim Totals2 As Byte(,) = np.mulLine(MatArray) ' macht keinen sinn bei 1.Zeile (* 0 = 0) ...
+                Dim MaskSum As Integer() = np.sum(Totals2, 0)
+                Dim Means1 As Integer() = np.sum(MatArray, 0)
+                Dim Means As Double() = np.div(MaskSum, Means1)
 
-        '    contour_points = np.array(contour_points, dtype:="double").reshape(Tuple.Create(-1, 1, 2))
-        '    contour_points = pix2norm(shape, contour_points)
-        '    span_points.Add(contour_points)
-        'Next
+                Dim xmin = cinfo.rect.x
+                Dim ymin = cinfo.rect.y
+                Dim [step] = SPAN_PX_PER_STEP
+                Dim start = CInt(Math.Floor(((Means.Length - 1) Mod [step]) / 2)) ' 3 / 2 ist in Python 1 (abschneiden von dezimal = floor, dann Cint)
+                'contour_points += Range(start, Means.Count, [step]).[Select](Function(x) Tuple.Create(x + xmin, Means(x) + ymin))
+                For i As Integer = start To Means.Count Step [step]
+                    contour_points.Add({i + xmin, Means(i) + ymin})
+                Next
+            Next
 
-        'Return span_points
+            'contour_points = np.array(contour_points, dtype:="double").reshape(Tuple.Create(-1, 1, 2))
+            contour_points = pix2norm(shape, contour_points)
+            span_points.Add(contour_points)
+
+        Next
+
+        Return span_points
     End Function
 
-    Function keypoints_from_samples(ByVal name As Object, ByVal small As Mat, ByVal pagemask As Object, ByVal page_outline As Object, ByVal span_points As Object) As Object
-        'Dim evec As Object
-        'Dim all_evecs As Double() = {0.0, 0.0}
-        'Dim all_weights = 0
+    Function keypoints_from_samples(ByVal name As String,
+                                    ByVal small As Mat,
+                                    ByVal pagemask As Mat,
+                                    ByVal page_outline As Object,
+                                    ByVal span_points As List(Of List(Of Double()))) As Object
 
-        'For Each points In span_points
-        '    Dim Vec As New MCvScalar(-1, 2)
-        '    Dim _tup_1 : CvInvoke.PCACompute(points.reshape(Vec), _tup_1, Nothing, maxComponents:=1)
-        '    evec = _tup_1.Item2
-        '    Dim weight = np.linalg.norm(points(-1) - points(0))
-        '    all_evecs += evec * weight
-        '    all_weights += weight
-        'Next
+        Dim all_evecs As Double() = {0.0, 0.0}
+        Dim Evec As New VectorOfFloat
+        Dim all_weights As Double = 0
 
-        'evec = all_evecs / all_weights
-        'Dim x_dir = evec.flatten()
+        For Each points In span_points
+            Dim Matrix As New Matrix(Of Double)(points.Count, 2)
+            For i As Integer = 0 To CInt(points.Count) - 1
+                Dim NewMat As New Matrix(Of Double)(2, 2)
+                Dim newSca As New MCvScalar(points(i)(0), points(i)(0))
+                Matrix(i, 0) = points(i)(0)
+                Matrix(i, 1) = points(i)(1)
+            Next
+            CvInvoke.PCACompute(Matrix, New Mat, Evec, maxComponents:=1)
 
-        'If x_dir(0) < 0 Then
-        '    x_dir = -x_dir
-        'End If
+            Dim weight = np.linalg.norm(np.Substract(points(points.Count - 1), points(0)))
+            all_evecs = (np.add(all_evecs, np.mul(Evec.ToArray, weight)))
+            all_weights += weight
+        Next
 
-        'Dim y_dir = np.array(New List(Of Object) From {
-        '    -x_dir(1),
-        '    x_dir(0)
-        '})
-        'Dim pagecoords = CvInvoke.ConvexHull(page_outline)
-        'pagecoords = pix2norm(pagemask.shape, pagecoords.reshape(tuple.Create(-1, 1, 2)))
-        'pagecoords = pagecoords.reshape(tuple.Create(-1, 2))
-        'Dim px_coords = np.dot(pagecoords, x_dir)
-        'Dim py_coords = np.dot(pagecoords, y_dir)
-        'Dim px0 = px_coords.min()
-        'Dim px1 = px_coords.max()
-        'Dim py0 = py_coords.min()
-        'Dim py1 = py_coords.max()
-        'Dim p00 = px0 * x_dir + py0 * y_dir
-        'Dim p10 = px1 * x_dir + py0 * y_dir
-        'Dim p11 = px1 * x_dir + py1 * y_dir
-        'Dim p01 = px0 * x_dir + py1 * y_dir
-        'Dim corners = np.vstack(Tuple.Create(p00, p10, p11, p01)).reshape(Tuple.Create(-1, 1, 2))
-        'Dim ycoords = New List(Of Object)()
-        'Dim xcoords = New List(Of Object)()
+        Evec = New VectorOfFloat(np.div(all_evecs, all_weights))
+        Dim x_dir = Evec '  np.Flatten(Evec)
 
-        'For Each points In span_points
-        '    Dim pts = points.reshape(Tuple.Create(-1, 2))
-        '    px_coords = np.dot(pts, x_dir)
-        '    py_coords = np.dot(pts, y_dir)
-        '    ycoords.Add(py_coords.mean() - py0)
-        '    xcoords.Add(px_coords - px0)
-        'Next
+        If x_dir(0) < 0 Then
+            'x_dir(0) = x_dir(0) * -1
+            Evec = New VectorOfFloat({Evec(0) * -1, Evec(1) * -1})
+        End If
+
+        Dim y_dir = {x_dir(1) * -1, x_dir(0)}
+
+        Dim Outline(3) As Drawing.PointF
+        Outline(0) = New Drawing.PointF(page_outline(0, 0), page_outline(0, 1))
+        Outline(1) = New Drawing.PointF(page_outline(1, 0), page_outline(1, 1))
+        Outline(2) = New Drawing.PointF(page_outline(2, 0), page_outline(2, 1))
+        Outline(3) = New Drawing.PointF(page_outline(3, 0), page_outline(3, 1))
+
+        Dim pagecoords = CvInvoke.ConvexHull(Outline)
+        pagecoords = pix2norm(pagemask.Size, pagecoords)
+        Dim px_coords As Double() = np.dot(pagecoords, x_dir.ToArray)
+        Dim py_coords As Double() = np.dot(pagecoords, y_dir.ToArray)
+        Dim px0 = px_coords.Min
+        Dim px1 = px_coords.Max()
+        Dim py0 = py_coords.Min()
+        Dim py1 = py_coords.Max()
+        Dim p00 = np.add(np.mul(x_dir.ToArray, px0), np.mul(y_dir, py0))
+        Dim p10 = np.add(np.mul(x_dir.ToArray, px1), np.mul(y_dir, py0))
+        Dim p11 = np.add(np.mul(x_dir.ToArray, px1), np.mul(y_dir, py1))
+        Dim p01 = np.add(np.mul(x_dir.ToArray, px0), np.mul(y_dir, py1))
+        Dim corners = np.vstack(Tuple.Create(p00, p10, p11, p01))
+        Dim ycoords As List(Of Double()) = New List(Of Double())
+        Dim xcoords As List(Of Double()) = New List(Of Double())
+
+        For Each points In span_points
+            Dim pts As List(Of Double()) = points '.reshape(Tuple.Create(-1, 2))
+            px_coords = np.dot(pts, x_dir.ToArray)
+            py_coords = np.dot(pts, y_dir.ToArray)
+            ycoords.Add(np.Substract(np.Mean(py_coords), py0))
+            xcoords.Add(np.Substract(px_coords, px0))
+        Next
 
         'If DEBUG_LEVEL >= 2 Then
-        '    visualize_span_points(name, small, span_points, corners)
+        visualize_span_points(name, small, span_points, corners)
         'End If
 
-        'Return Tuple.Create(corners, np.array(ycoords), xcoords)
+        Return Tuple.Create(corners, ycoords, xcoords)
     End Function
 
     Function visualize_contours(ByVal name As String, ByVal small As Mat, ByVal cinfo_list As List(Of ContourInfo)) As Object
         Dim cinfo As Object
-        Dim j As Object
         Dim regions = np.zeros_like(small)
 
-        'For Each _tup_1 In cinfo_list.[Select](Function(_p_1, _p_2) Tuple.Create(_p_2, _p_1))
-        '    j = _tup_1.Item1
-        '    cinfo = _tup_1.Item2
-        '    CvInvoke.DrawContours(regions, New List(Of Object) From {
-        '        cinfo.contour
-        '    }, 0, CCOLORS(j Mod CCOLORS.Count), -1)
-        'Next
+        For j As Integer = 0 To cinfo_list.Count - 1
+            cinfo = cinfo_list(j)
+            Dim Color As Double() = CCOLORS(j Mod CCOLORS.Count)
+            Dim SpanArr As New VectorOfVectorOfPoint : SpanArr.Push(cinfo.contour)
+            CvInvoke.DrawContours(regions, SpanArr, 0, New MCvScalar(Color(0), Color(1), Color(1)), -1)
+        Next
 
+        Dim Display As Mat = small.Clone
         'Dim mask = regions.max(axis:=2) <> 0
         'Dim display = small.Clone()
         'display(mask) = display(mask) / 2 + regions(mask) / 2
+
+        For j As Integer = 0 To cinfo_list.Count - 1
+            cinfo = cinfo_list(j)
+            Dim Color = CCOLORS(j * 4 Mod CCOLORS.Count)
+            Dim Col As New MCvScalar(Color(0) / 4, Color(1) / 4, Color(2) / 4)
+            CvInvoke.Circle(Display, New Drawing.Point(cinfo.center(0), cinfo.center(1)), 3, Col, 1, LineType.AntiAlias)
+            CvInvoke.Line(Display, New Drawing.Point(cinfo.point0(0), cinfo.point0(1)),
+                                    New Drawing.Point(cinfo.point1(0), cinfo.point1(1)), Col, 1, LineType.AntiAlias)
+        Next
 
         'For Each _tup_2 In cinfo_list.[Select](Function(_p_3, _p_4) Tuple.Create(_p_4, _p_3))
         '    Dim Col As New MCvScalar(255, 255, 255)
@@ -578,58 +593,54 @@ Module page_dewarp
         '    CvInvoke.Line(display, fltp(cinfo.point0), fltp(cinfo.point1), Col, 1, LineType.AntiAlias)
         'Next
 
-        'debug_show(name, 1, "contours", display)
+        debug_show(name, 1, "contours", Display)
     End Function
 
     Function visualize_spans(ByVal name As Object, ByVal small As Object, ByVal pagemask As Object, ByVal spans As List(Of ContourInfo())) As Object
         Dim regions = np.zeros_like(small)
 
         For i As Integer = 0 To spans.Count - 1
-            Dim Span As VectorOfPoint = spans(i)(0).contour
-            Dim SpanArr As New VectorOfVectorOfPoint : SpanArr.Push(Span)
-            Dim ColorAct As Double() = CCOLORS(0)
-            ' CvInvoke.DrawContours(regions, SpanArr, -1, New MCvScalar(CCOLORS(i * 3 Mod CCOLORS.Count)), 1)
+            For Each Span In spans(i)
+                If Span.contour.Size = 0 Then Continue For
+                Dim SpanArr As New VectorOfVectorOfPoint : SpanArr.Push(Span.contour)
+                Dim Color As Double() = CCOLORS(i * 4 Mod CCOLORS.Count)
+                Dim ColorMCV As New MCvScalar(Color(0), Color(1), Color(2))
+                CvInvoke.DrawContours(regions, SpanArr, -1, ColorMCV, 1)
+            Next
         Next
 
-        For Each _tup_1 In spans.[Select](Function(_p_1, _p_2) Tuple.Create(_p_2, _p_1))
-            Dim i = _tup_1.Item1
-            Dim span = _tup_1.Item2
-            'Dim contours = span.[Select](Function(cinfo) cinfo.contour)
-            'CvInvoke.DrawContours(regions, contours, -1, CCOLORS(i * 3 Mod CCOLORS.Count), -1)
-        Next
-
-        Dim mask = regions.max(axis:=2) <> 0
-        Dim display = small.copy()
-        display(mask) = display(mask) / 2 + regions(mask) / 2
+        'Dim mask = regions.max(axis:=2) <> 0
+        'Dim display = small.copy()
+        'display(mask) = display(mask) / 2 + regions(mask) / 2
         ' display[pagemask == 0] /= 4;
-        debug_show(name, 2, "spans", display)
+        ' debug_show(name, 2, "spans", display)
     End Function
 
-    Function visualize_span_points(ByVal name As Object, ByVal small As Object, ByVal span_points As Object, ByVal corners As Object) As Object
-        Dim display = small.copy()
+    Function visualize_span_points(ByVal name As Object, ByVal small As Mat, ByVal span_points As List(Of List(Of Double())), ByVal corners As Object) As Object
+        Dim display = small
         Dim Col As New MCvScalar(255, 255, 255)
 
-        For Each _tup_1 In span_points.[Select](Function(_p_1, _p_2) Tuple.Create(_p_2, _p_1))
-            Dim i = _tup_1.Item1
-            Dim points = _tup_1.Item2
-            points = norm2pix(small.shape, points, False)
-            Dim Tup As New MCvScalar(-1, 2)
-            Dim _tup_2 = Nothing : CvInvoke.PCACompute(points.reshape(Tup), _tup_2, Nothing, maxComponents:=1)
-            Dim mean = _tup_2.Item1
-            Dim small_evec = _tup_2.Item2
-            Dim dps = np.dot(points.reshape(Tuple.Create(-1, 2)), small_evec.reshape(Tuple.Create(2, 1)))
-            Dim dpm = np.dot(mean.flatten(), small_evec.flatten())
-            Dim point0 = mean + small_evec * (dps.min() - dpm)
-            Dim point1 = mean + small_evec * (dps.max() - dpm)
+        ' For Each _tup_1 In span_points.[Select](Function(_p_1, _p_2) Tuple.Create(_p_2, _p_1))
+        For iSpan As Integer = 0 To span_points.Count
+            ' Dim points = span_points(iSpan)
+            'points = norm2pix(small.Size, points, False)
+            'Dim Tup As New MCvScalar(-1, 2)
+            'Dim _tup_2 = CvInvoke.PCACompute(points, _tup_2, Nothing, maxComponents:=1)
+            'Dim mean = _tup_2.Item1
+            'Dim small_evec = _tup_2.Item2
+            Dim dps = Nothing ' np.dot(points.reshape(Tuple.Create(-1, 2)), small_evec.reshape(Tuple.Create(2, 1)))
+            'Dim dpm = np.dot(np.Flatten(mean), np.Flatten(small_evec))
+            'Dim point0 = mean + small_evec * (dps.min() - dpm)
+            'Dim point1 = mean + small_evec * (dps.max() - dpm)
 
-            For Each point In points
-                ' CvInvoke.Circle(display, fltp(point), 3, CCOLORS(CDbl(i Mod CCOLORS.Count)), -1, LineType.AntiAlias)
-            Next
+            'For Each point In points
+            ' CvInvoke.Circle(display, fltp(point), 3, CCOLORS(CDbl(i Mod CCOLORS.Count)), -1, LineType.AntiAlias)
+            'Next
 
-            CvInvoke.Line(display, fltp(point0), fltp(point1), Col, 1, LineType.AntiAlias)
+            'CvInvoke.Line(display, fltp(point0), fltp(point1), Col, 1, LineType.AntiAlias)
         Next
 
-        CvInvoke.Polylines(display, New List(Of Object) From {norm2pix(small.shape, corners, True)}, True, Col)
+        'CvInvoke.Polylines(display, New List(Of Object) From {norm2pix(small.Size, corners, True)}, True, Col)
         debug_show(name, 3, "span points", display)
     End Function
 
@@ -641,21 +652,21 @@ Module page_dewarp
     End Function
 
     Function make_keypoint_index(ByVal span_counts As Object) As Object
-        'Dim nspans = span_counts.Count
-        'Dim npts = span_counts.Sum()
-        'Dim keypoint_index = np.zeros(Tuple.Create(npts + 1, 2), "int")
-        'Dim start = 1
+        Dim nspans = span_counts.Count
+        Dim npts = span_counts.Sum()
+        Dim keypoint_index = np.zeros(Tuple.Create(npts + 1, 2), "int")
+        Dim start = 1
 
-        'For Each _tup_1 In span_counts.[Select](Function(_p_1, _p_2) Tuple.Create(_p_2, _p_1))
-        '    Dim i = _tup_1.Item1
-        '    Dim count = _tup_1.Item2
-        '    Dim [end] = start + count
-        '    keypoint_index(start(start + [end]), 1) = 8 + i
-        '    start = [end]
-        'Next
+        For Each _tup_1 In span_counts.[Select](Function(_p_1, _p_2) Tuple.Create(_p_2, _p_1))
+            Dim i = _tup_1.Item1
+            Dim count = _tup_1.Item2
+            Dim [end] = start + count
+            ' keypoint_index(start(start + [end]), 1) = 8 + i
+            start = [end]
+        Next
 
-        'keypoint_index(1, 0) = np.arange(npts) + 8 + nspans
-        'Return keypoint_index
+        keypoint_index(1, 0) = np.arange(npts) + 8 + nspans
+        Return keypoint_index
     End Function
 
     Function optimize_params(ByVal name As Object, ByVal small As Object, ByVal dstpoints As Object, ByVal span_counts As Object, ByVal _params As Object) As Object
@@ -664,7 +675,7 @@ Module page_dewarp
         Dim keypoint_index = make_keypoint_index(span_counts)
         Dim objective As Func(Of Object, Object) = Function(pvec)
                                                        Dim ppts = project_keypoints(pvec, keypoint_index)
-                                                       Return np.sum(Math.Pow(dstpoints - ppts, 2))
+                                                       'Return np.sum(Math.Pow(dstpoints - ppts, 2))
                                                    End Function
 
         If DEBUG_LEVEL >= 1 Then
@@ -686,26 +697,26 @@ Module page_dewarp
     End Function
 
     Function get_page_dims(ByVal corners As Object, ByVal rough_dims As Object, ByVal _params As Object) As Object
-        Dim dst_br = corners(2).flatten()
+        Dim dst_br = np.Flatten(corners.item3) ' .flatten()
         Dim dims As Object = np.array(rough_dims)
-        'Dim objective As Func(Of Object, Object) = Function(dims)
-        '                                               Dim proj_br = project_xy(dims, _params)
-        '                                               Return np.sum(Math.Pow(dst_br - proj_br.flatten(), 2))
-        '                                           End Function
+        Dim objective As Func(Of Object, Object) = Function(dims_)
+                                                       Dim proj_br = project_xy(dims_, _params)
+                                                       ' Return np.sum(Math.Pow(dst_br - proj_br.flatten(), 2))
+                                                   End Function
 
-        'Dim res = New scipy.optimize().minimize(objective, dims, method:="Powell") ' Todo - Link to Function needed
-        'dims = res.x
-        'Return dims
+        Dim res = New scipy.optimize().minimize(objective, dims, method:="Powell") ' Todo - Link to Function needed
+        dims = res.x
+        Return dims
     End Function
 
-    Function remap_image(ByVal name As Object, ByVal img As Object, ByVal small As Object, ByVal page_dims As Object, ByVal _params As Object) As Object
-        Dim height = 0.5 * page_dims(1) * OUTPUT_ZOOM * img.shape(0)
+    Function remap_image(ByVal name As Object, ByVal img As Object, ByVal small As Object, ByVal page_dims As Mat, ByVal _params As Object) As Object
+        Dim height = 0.5 * page_dims.GetData(1) * OUTPUT_ZOOM * img.size.height
         height = round_nearest_multiple(height, REMAP_DECIMATE)
-        Dim width = round_nearest_multiple(height * page_dims(0) / page_dims(1), REMAP_DECIMATE)
+        Dim width = round_nearest_multiple(height * page_dims.GetData(0) / page_dims.GetData(1), REMAP_DECIMATE)
         Dim height_small = height / REMAP_DECIMATE
         Dim width_small = width / REMAP_DECIMATE
-        Dim page_x_range = np.linspace(0, page_dims(0), width_small)
-        Dim page_y_range = np.linspace(0, page_dims(1), height_small)
+        Dim page_x_range = np.linspace(0, page_dims.GetData(0), width_small)
+        Dim page_y_range = np.linspace(0, page_dims.GetData(1), height_small)
         Dim _tup_1 = np.meshgrid(page_x_range, page_y_range)
         Dim page_x_coords = _tup_1.Item1
         Dim page_y_coords = _tup_1.Item2
@@ -718,7 +729,7 @@ Module page_dewarp
         CvInvoke.Resize(image_x_coords, image_x_coords, New Drawing.Size(width, height), interpolation:=Inter.Cubic)
         CvInvoke.Resize(image_y_coords, image_y_coords, New Drawing.Size(width, height), interpolation:=Inter.Cubic)
         Dim img_gray As Mat = Nothing : CvInvoke.CvtColor(img, img_gray, ColorConversion.Rgb2Gray)
-        Dim remapped As Mat = Nothing : CvInvoke.Remap(img_gray, remapped, image_x_coords, image_y_coords, Inter.Cubic, BorderType.Replicate, Nothing)
+        Dim remapped As Mat = Nothing : CvInvoke.Remap(img, remapped, image_x_coords, image_y_coords, Inter.Cubic, BorderType.Replicate, Nothing)
         Dim thresh As Mat = Nothing : CvInvoke.AdaptiveThreshold(remapped, thresh, 255, AdaptiveThresholdType.MeanC, ThresholdType.Binary, ADAPTIVE_WINSZ, 25)
 
         'Dim pil_image = Image.fromarray(thresh)
@@ -732,161 +743,71 @@ Module page_dewarp
     Function main() As Object
         Dim outfiles = New List(Of Object)()
 
-        'For Each imgfile In Environment.CommandLine
-        Dim imgfile As String = "Test.jpg"  ' OK cross
-        Dim img = CvInvoke.Imread(imgfile)  ' OK cross
-        Dim small = resize_to_screen(img)   ' OK cross
-        Dim name As String = imgfile        ' OK cross
-        Dim basename As String = Environment.CurrentDirectory
+        Dim imgfile As String = "Test.jpg"          ' OK cross
+        Dim img As Mat = CvInvoke.Imread(imgfile)   ' OK cross
+        Dim small As Mat = resize_to_screen(img)    ' OK cross
+        Dim name As String = imgfile                ' OK cross
 
-        Dim _tup_2 = get_page_extents(small) ' OK cross
-        Dim pagemask As Mat = _tup_2.Item1
-        Dim page_outline = _tup_2.Item2
-        Dim cinfo_list = get_contours(name, small, pagemask, "text") ' OK cross
-        Dim spans = assemble_spans(name, small, pagemask, cinfo_list)
+        Dim PageExtents = get_page_extents(small)                               ' OK cross
+        Dim cinfo_list = get_contours(name, small, PageExtents.Item1, "text")   ' OK cross
+        Dim spans = assemble_spans(name, small, PageExtents.Item1, cinfo_list)
 
         If spans.Count < 3 Then
             Console.WriteLine("  detecting lines because only", spans.Count, "text spans")
-            cinfo_list = get_contours(name, small, pagemask, "line")
-            Dim spans2 = assemble_spans(name, small, pagemask, cinfo_list)
+            cinfo_list = get_contours(name, small, PageExtents.Item1, "line")
+            Dim spans2 = assemble_spans(name, small, PageExtents.Item1, cinfo_list)
             If spans2.Count > spans.Count Then spans = spans2
         End If
 
         If spans.Count < 1 Then Return Nothing
-        Dim span_points = sample_spans(small.Size, spans)
-        Dim _tup_3 = keypoints_from_samples(name, small, pagemask, page_outline, span_points)
+        Dim span_points As List(Of List(Of Double())) = sample_spans(small.Size, spans)
+        Dim _tup_3 = keypoints_from_samples(name, small, PageExtents.Item1, PageExtents.Item2, span_points)
+        ' ------- Werte aus Tuppel --------
         Dim corners = _tup_3.Item1
-        Dim ycoords = _tup_3.Item2
-        Dim xcoords = _tup_3.Item3
+        Dim ycoords As List(Of Double()) = _tup_3.Item2
+        Dim xcoords As List(Of Double()) = _tup_3.Item3
+
         Dim _tup_4 = get_default_params(corners, ycoords, xcoords)
+        ' ------- Werte aus Tuppel --------
         Dim rough_dims = _tup_4.Item1
         Dim span_counts = _tup_4.Item2
         Dim _params = _tup_4.Item3
+
         'Dim dstpoints = np.vstack(Tuple.Create(corners(0).reshape(Tuple.Create(1, 1, 2))) + tuple.Create(span_points))
-        'Dim params = optimize_params(name, small, dstpoints, span_counts, _params)
-        'Dim page_dims = get_page_dims(corners, rough_dims, _params)
-        'Dim outfile = remap_image(name, img, small, page_dims, _params)
-        'outfiles.Add(outfile)
-        'Next
+        ' Dim params = optimize_params(name, small, dstpoints, span_counts, _params)
+        Dim page_dims = get_page_dims(corners, rough_dims, _params)
+        Dim outfile = remap_image(name, img, small, page_dims, _params)
+
     End Function
 
-    Function SumAxis0Max(Data As Byte(), width As Integer, Height As Integer) As Integer
-        ' -----
-        ' [1] 0 1
-        ' [1] 1 0
-        ' [1] 1 1
-        ' -----
-        ' [3] 2 2 ' Result for each Column
-        ' [3] <= Max
-        Dim Max As Integer = 0
-        For iCol As Integer = 0 To width - 1
-            Dim Test_Col As New List(Of Byte)
-            For iLine As Integer = 0 To Height - 1
-                Dim Pos As Integer = (iCol + (iLine * width))
-                Test_Col.Add(Data(Pos))
+    Function SumAxis0Max(ByVal Data As Byte(), ByVal width As Integer, ByVal Height As Integer) As Integer
+        Dim MaxData As Integer = 0
+        Dim NewData As Byte(,) = Accord.Math.Matrix.Reshape(Data, Height, width, Accord.Math.MatrixOrder.Default)
+
+        For i As Integer = 0 To width - 1
+            Dim LocalMax As Integer = 0
+            Dim ColData As Byte() = Accord.Math.Matrix.GetColumn(NewData, 1)
+            For i2 As Integer = 0 To ColData.Count - 1
+                LocalMax += ColData(i2)
             Next
-            If Test_Col.Sum(Function(s) s) > Max Then Max = Test_Col.Sum(Function(s) s)
+            If LocalMax > MaxData Then MaxData = LocalMax
         Next
-        Return Max
+        Return MaxData
     End Function
-    Function Min(a As List(Of Double))
+    Function Min(ByVal a As List(Of Double))
         Return a.Min()
     End Function
-    Function Max(a As List(Of Double))
+    Function Max(ByVal a As List(Of Double))
         Return a.Max()
     End Function
 End Module
 
-Class np
 
-    Shared Function add(a As Double(), b As Double()) As Double()
-        Return {a(0) + b(0), a(1) + b(1)}
-    End Function
-    Shared Function mul(a As Double(), b As Double) As Double()
-        Return {a(0) * b, a(1) * b}
-    End Function
-
-
-
-
-
-    Shared Function SubstractArrays(a As Double(), B As Double()) As Double()
-        Return {a(0) - B(0), a(1) - B(1)}
-    End Function
-    Shared Function zeros_like(a As Mat)
-        Return np.zeros(Tuple.Create(a.Height, a.Width))
-    End Function
-    Shared Function arctan2(ByVal a As Double, ByVal b As Double)
-        Return Math.Atan2(a, b)
-    End Function
-    Shared Function reshape()
-        'Throw New NotImplementedException
-        Return Nothing
-    End Function
-    Shared Function arange()
-        'Throw New NotImplementedException
-        Return Nothing
-    End Function
-    Shared Function array(ByVal a As Object, Optional ByVal dtype As Object = Nothing)
-        Return Mat.Zeros(a.item1, a.item2, DepthType.Cv8U, 1)
-        Return Nothing
-    End Function
-    Shared Function range()
-        'Throw New NotImplementedException : 
-        Return Nothing
-    End Function
-    Shared Function sum()
-        'Throw New NotImplementedException : 
-        Return Nothing
-    End Function
-    Shared Function dot(a As Double(), b As Double())
-        ' MemoryException
-        Do
-            Dim A1 As New VectorOfDouble(a)
-            Dim B1 As New VectorOfDouble(b)
-            Dim C1 = A1.GetInputArray.GetMat.Dot(B1)
-            A1.Dispose()
-            B1.Dispose()
-            Return C1
-        Loop
-    End Function
-    Shared Function vstack()
-        Throw New NotImplementedException : Return Nothing
-    End Function
-    Shared Function hstack()
-        Throw New NotImplementedException : Return Nothing
-    End Function
-    Shared Function linspace()
-        Throw New NotImplementedException : Return Nothing
-    End Function
-    Public Class linalg
-        Shared Function norm(a As Double()) As Double
-            Dim Vec = MathNet.Numerics.LinearAlgebra.Vector(Of Double).Build.SparseOfArray(a)
-            Return Vec.L2Norm
-            Throw New NotImplementedException : Return Nothing
-        End Function
-    End Class
-
-    Shared Function ones(ByVal a As Object, Optional ByVal dtype As Object = Nothing)
-        Return Mat.Ones(a.item1, a.item2, DepthType.Cv8U, 1)
-    End Function
-    Shared Function zeros(ByVal a As Object, Optional ByVal dtype As Object = Nothing)
-        Return Mat.Zeros(a.item1, a.item2, DepthType.Cv8U, 1)
-    End Function
-    Shared Function meshgrid()
-        Throw New NotImplementedException : Return Nothing
-    End Function
-    Shared Function polyval()
-        Throw New NotImplementedException : Return Nothing
-    End Function
-    Shared Function minimum(ByVal a As Mat, ByVal b As Mat) As Mat
-        Dim c As New Mat : Emgu.CV.CvInvoke.Min(a, b, c) : Return c
-    End Function
-End Class
 Class scipy
     Class optimize
         Function minimize(ByVal a, ByVal b, ByVal method)
-            Throw New NotImplementedException : Return Nothing
+            MsgBox(1)
+            Return Nothing
         End Function
     End Class
 End Class
