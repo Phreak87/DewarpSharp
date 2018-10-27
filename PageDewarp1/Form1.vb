@@ -13,6 +13,7 @@ Public Class Form1
     End Sub
 
     Private Sub Button1_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
+        Dim a = np.linspace(1, 2, 5)
         main()
     End Sub
 End Class
@@ -170,11 +171,11 @@ Module page_dewarp
         Return display
     End Function
 
-    Function get_default_params(ByVal corners As Object,
+    Function get_default_params(ByVal corners As Tuple(Of Double(), Double(), Double(), Double()),
                                 ByVal ycoords As List(Of Double()),
                                 ByVal xcoords As List(Of Double())) As Object
-        Dim page_width = np.linalg.norm(np.Substract(corners.item2, corners.item1))
-        Dim page_height = np.linalg.norm(np.Substract(corners.item3, corners.item1))
+        Dim page_width As Double = np.linalg.norm(np.Substract(corners.Item2, corners.Item1))
+        Dim page_height As Double = np.linalg.norm(np.Substract(corners.Item3, corners.Item1))
         Dim rough_dims = Tuple.Create(page_width, page_height)
         Dim cubic_slopes As Double() = {0.0, 0.0}
         Dim corners_object3d = {{0, 0, 0}, {page_width, 0, 0}, {page_width, page_height, 0}, {0, page_height, 0}}
@@ -186,14 +187,12 @@ Module page_dewarp
         Dim RES As New Mat
         Dim R As New Mat
 
-
         CvInvoke.SolvePnP(CObj3D, CornOB, KMat, Scal, New Mat, RES)
-        Dim rvec = RES.GetData(0)
-        Dim tvec = RES.GetData(1)
+        Dim rvec = {BitConverter.ToDouble(RES.GetData(0, 0), 0), BitConverter.ToDouble(RES.GetData(0, 1), 0), BitConverter.ToDouble(RES.GetData(0, 2), 0)}
+        Dim tvec = {BitConverter.ToDouble(RES.GetData(1, 0), 0), BitConverter.ToDouble(RES.GetData(1, 1), 0), BitConverter.ToDouble(RES.GetData(1, 2), 0)}
 
-        Dim span_counts = xcoords.[Select](Function(xc) xc.Count)
-        'Dim _params = np.hstack(Tuple.Create(np.array(rvec).flatten(), np.array(tvec).flatten(), np.array(cubic_slopes).flatten(), ycoords.flatten()) + tuple.Create(xcoords))
-        Dim _params = Nothing
+        Dim span_counts As New List(Of Integer) : For Each Entry In xcoords : span_counts.Add(Entry.Length) : Next
+        Dim _params = np.hstack(Tuple.Create(rvec, tvec, cubic_slopes, ycoords)) ' + tuple.Create(xcoords))
         Return Tuple.Create(rough_dims, span_counts, _params)
     End Function
 
@@ -532,22 +531,22 @@ Module page_dewarp
         Dim px_coords As Double() = np.dot(pagecoords, x_dir.ToArray)
         Dim py_coords As Double() = np.dot(pagecoords, y_dir.ToArray)
         Dim px0 = px_coords.Min
-        Dim px1 = px_coords.Max()
-        Dim py0 = py_coords.Min()
-        Dim py1 = py_coords.Max()
+        Dim px1 = px_coords.Max
+        Dim py0 = py_coords.Min
+        Dim py1 = py_coords.Max
         Dim p00 = np.add(np.mul(x_dir.ToArray, px0), np.mul(y_dir, py0))
         Dim p10 = np.add(np.mul(x_dir.ToArray, px1), np.mul(y_dir, py0))
         Dim p11 = np.add(np.mul(x_dir.ToArray, px1), np.mul(y_dir, py1))
         Dim p01 = np.add(np.mul(x_dir.ToArray, px0), np.mul(y_dir, py1))
         Dim corners = np.vstack(Tuple.Create(p00, p10, p11, p01))
+
         Dim ycoords As List(Of Double()) = New List(Of Double())
         Dim xcoords As List(Of Double()) = New List(Of Double())
-
         For Each points In span_points
-            Dim pts As List(Of Double()) = points '.reshape(Tuple.Create(-1, 2))
+            Dim pts As List(Of Double()) = points
             px_coords = np.dot(pts, x_dir.ToArray)
             py_coords = np.dot(pts, y_dir.ToArray)
-            ycoords.Add(np.Substract(np.Mean(py_coords), py0))
+            ycoords.Add({np.Mean(py_coords) - py0})
             xcoords.Add(np.Substract(px_coords, px0))
         Next
 
@@ -709,14 +708,14 @@ Module page_dewarp
         Return dims
     End Function
 
-    Function remap_image(ByVal name As Object, ByVal img As Object, ByVal small As Object, ByVal page_dims As Mat, ByVal _params As Object) As Object
-        Dim height = 0.5 * page_dims.GetData(1) * OUTPUT_ZOOM * img.size.height
+    Function remap_image(ByVal name As String, ByVal img As Object, ByVal small As Mat, ByVal page_dims As Mat, ByVal _params As Object) As Object
+        Dim height = 0 ' 0.5 * page_dims.GetData(1) * OUTPUT_ZOOM * img.size.height
         height = round_nearest_multiple(height, REMAP_DECIMATE)
-        Dim width = round_nearest_multiple(height * page_dims.GetData(0) / page_dims.GetData(1), REMAP_DECIMATE)
+        Dim width = 0 ' round_nearest_multiple(height * page_dims.GetData(0) / page_dims.GetData(1), REMAP_DECIMATE)
         Dim height_small = height / REMAP_DECIMATE
         Dim width_small = width / REMAP_DECIMATE
-        Dim page_x_range = np.linspace(0, page_dims.GetData(0), width_small)
-        Dim page_y_range = np.linspace(0, page_dims.GetData(1), height_small)
+        Dim page_x_range = 0 '  np.linspace(0, page_dims.GetData(0), width_small)
+        Dim page_y_range = 0 'np.linspace(0, page_dims.GetData(1), height_small)
         Dim _tup_1 = np.meshgrid(page_x_range, page_y_range)
         Dim page_x_coords = _tup_1.Item1
         Dim page_y_coords = _tup_1.Item2

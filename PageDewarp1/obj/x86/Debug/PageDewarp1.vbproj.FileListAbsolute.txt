@@ -35,3 +35,4 @@ D:\SubVersion\01_ACCESSIBLE\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewa
 D:\SubVersion\01_ACCESSIBLE\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp.Form1.resources
 D:\SubVersion\01_ACCESSIBLE\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp.Resources.resources
 D:\SubVersion\01_ACCESSIBLE\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp1.vbproj.GenerateResource.Cache
+C:\Users\Phreak\Desktop\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp1.vbprojResolveAssemblyReference.cache

@@ -188,6 +188,10 @@ def get_default_params(corners, ycoords, xcoords):
                                  corners, K, np.zeros(5))
 
     span_counts = [len(xc) for xc in xcoords]
+    
+    rVec = np.array(rvec).flatten()
+    tVec = np.array(tvec).flatten()
+    slopes = np.array(cubic_slopes).flatten()
 
     params = np.hstack((np.array(rvec).flatten(),
                         np.array(tvec).flatten(),
@@ -899,8 +903,7 @@ def main():
                                                            page_outline,
                                                            span_points)
 
-        rough_dims, span_counts, params = get_default_params(corners,
-                                                             ycoords, xcoords)
+        rough_dims, span_counts, params = get_default_params(corners, ycoords, xcoords)
 
         dstpoints = np.vstack((corners[0].reshape((1, 1, 2)),) +
                               tuple(span_points))

@@ -55,12 +55,20 @@ Class np
         Return RES
     End Function
 
-    Shared Function Mean(ByVal a As Double()) As Double()
-        Return {1.0, 2}.ToArray
+    Shared Function Mean(ByVal a As Double()) As Double
+        Dim Sum As Double = 0
+        For Each Entry In a
+            Sum += Entry
+        Next
+        Return Sum / a.Count
     End Function
 
     Shared Function Substract(ByVal a As Double(), ByVal B As Double) As Double()
-        Return {a(0) - B, a(1) - B}
+        Dim Res As New List(Of Double)
+        For Each Entry In a
+            Res.Add(Entry - B)
+        Next
+        Return Res.ToArray
     End Function
     Shared Function Substract(ByVal a As Double(), ByVal B As Double()) As Double()
         If a.Count = 2 And B.Count = 2 Then
@@ -173,23 +181,20 @@ Class np
 #Region "Dot-Product"
     Shared Function dot(ByVal a As List(Of Double()), ByVal b As Single())
         Dim Ret As New List(Of Double)
+
+        Dim B1 As New Matrix(Of Double)(1, 2)
+        B1(0, 0) = b(0)
+        B1(0, 1) = b(1)
+
         For i As Integer = 0 To a.Count - 1
-
-            Dim A1 As New Matrix(Of Double)(a.Count, 2)
-            For i2 As Integer = 0 To a.Count - 1
-                A1(i2, 0) = a(i2)(0)
-                A1(i2, 1) = a(i2)(1)
-            Next
-
-            Dim B1 As New Matrix(Of Double)(1, 2)
-            B1(0, 0) = b(0)
-            B1(0, 1) = b(1)
-
+            Dim A1 As New Matrix(Of Double)(1, 2)
+            A1(0, 0) = a(i)(0)
+            A1(0, 1) = a(i)(1)
             Dim C1 = A1.GetInputArray.GetMat.Dot(B1)
-            Ret.Add(C1)
-            A1.Dispose()
-            B1.Dispose()
+            A1.Dispose() : Ret.Add(C1)
         Next
+
+        B1.Dispose()
         Return Ret.ToArray
     End Function
     Shared Function dot(ByVal a As PointF(), ByVal b As Single())
@@ -218,11 +223,16 @@ Class np
     Shared Function vstack(a As Object)
         Return a
     End Function
-    Shared Function hstack()
-        Throw New NotImplementedException : Return Nothing
+    Shared Function hstack(a As Object)
+        Return a
     End Function
-    Shared Function linspace()
-        Throw New NotImplementedException : Return Nothing
+    Shared Function linspace(a As Integer, b As Integer, c As Integer)
+        Dim Steps As Integer = (b - a) / c
+        Dim Ret As New List(Of Double)
+        For i As Integer = a To b Step Steps
+            Ret.Add(a + (i * Steps))
+        Next
+        Return Ret
     End Function
     Public Class linalg
         Shared Function norm(ByVal a As Double()) As Double
