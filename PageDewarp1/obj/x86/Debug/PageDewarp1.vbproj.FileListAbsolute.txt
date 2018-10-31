@@ -36,3 +36,15 @@ D:\SubVersion\01_ACCESSIBLE\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewa
 D:\SubVersion\01_ACCESSIBLE\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp.Resources.resources
 D:\SubVersion\01_ACCESSIBLE\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp1.vbproj.GenerateResource.Cache
 C:\Users\Phreak\Desktop\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp1.vbprojResolveAssemblyReference.cache
+C:\Users\Phreak\Desktop\Github Repos\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp1.xml
+C:\Users\Phreak\Desktop\Github Repos\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp1.pdb
+C:\Users\Phreak\Desktop\Github Repos\DewarpSharp\trunk\PageDewarp1\bin\Debug\PageDewarp1.exe
+C:\Users\Phreak\Desktop\Github Repos\DewarpSharp\trunk\PageDewarp1\bin\Debug\PageDewarp1.pdb
+C:\Users\Phreak\Desktop\Github Repos\DewarpSharp\trunk\PageDewarp1\bin\Debug\PageDewarp1.xml
+C:\Users\Phreak\Desktop\Github Repos\DewarpSharp\trunk\PageDewarp1\bin\Debug\MathNet.Numerics.dll
+C:\Users\Phreak\Desktop\Github Repos\DewarpSharp\trunk\PageDewarp1\bin\Debug\MathNet.Numerics.xml
+C:\Users\Phreak\Desktop\Github Repos\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp1.vbprojResolveAssemblyReference.cache
+C:\Users\Phreak\Desktop\Github Repos\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp.Form1.resources
+C:\Users\Phreak\Desktop\Github Repos\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp.Resources.resources
+C:\Users\Phreak\Desktop\Github Repos\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp1.vbproj.GenerateResource.Cache
+C:\Users\Phreak\Desktop\Github Repos\DewarpSharp\trunk\PageDewarp1\obj\x86\Debug\PageDewarp1.exe

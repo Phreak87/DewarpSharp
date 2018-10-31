@@ -227,10 +227,10 @@ Class np
         Return a
     End Function
     Shared Function linspace(a As Integer, b As Integer, c As Integer)
-        Dim Steps As Integer = (b - a) / c
+        Dim Steps As Double = (b - a) / c
         Dim Ret As New List(Of Double)
-        For i As Integer = a To b Step Steps
-            Ret.Add(a + (i * Steps))
+        For i As Double = a To b Step Steps
+            Ret.Add(Math.Round(i, 3))
         Next
         Return Ret
     End Function
@@ -258,7 +258,7 @@ Class np
 
 
     Shared Function ToMatrix(Tup As Tuple(Of Double(), Double(), Double(), Double())) As Matrix(Of Double)
-        Dim RES As New Matrix(Of Double)(4, Tup.Item1.Length)
+        Dim RES As New Matrix(Of Double)(4, 1, Tup.Item1.Length)
         RES.Data(0, 0) = Tup.Item1(0)
         RES.Data(0, 1) = Tup.Item1(1)
         RES.Data(1, 0) = Tup.Item2(0)

@@ -175,22 +175,32 @@ Module page_dewarp
                                 ByVal ycoords As List(Of Double()),
                                 ByVal xcoords As List(Of Double())) As Object
         Dim page_width As Double = np.linalg.norm(np.Substract(corners.Item2, corners.Item1))
-        Dim page_height As Double = np.linalg.norm(np.Substract(corners.Item3, corners.Item1))
+        Dim page_height As Double = np.linalg.norm(np.Substract(corners.Item4, corners.Item1))
         Dim rough_dims = Tuple.Create(page_width, page_height)
+
         Dim cubic_slopes As Double() = {0.0, 0.0}
-        Dim corners_object3d = {{0, 0, 0}, {page_width, 0, 0}, {page_width, page_height, 0}, {0, page_height, 0}}
+        Dim corners_object3d = {{0, 0, 0},
+                                {page_width, 0, 0},
+                                {page_width, page_height, 0},
+                                {0, page_height, 0}}
 
         Dim CObj3D As Matrix(Of Double) = np.ToMatrix(corners_object3d)
         Dim CornOB As Matrix(Of Double) = np.ToMatrix(corners)
         Dim KMat As Matrix(Of Double) = np.ToMatrix(K)
-        Dim Scal As New Mat(5, 1, DepthType.Cv16U, 1)
+        Dim Scal As New Mat(5, 1, DepthType.Cv8U, 1)
         Dim RES As New Mat
         Dim R As New Mat
 
-        CvInvoke.SolvePnP(CObj3D, CornOB, KMat, Scal, New Mat, RES)
-        Dim rvec = {BitConverter.ToDouble(RES.GetData(0, 0), 0), BitConverter.ToDouble(RES.GetData(0, 1), 0), BitConverter.ToDouble(RES.GetData(0, 2), 0)}
-        Dim tvec = {BitConverter.ToDouble(RES.GetData(1, 0), 0), BitConverter.ToDouble(RES.GetData(1, 1), 0), BitConverter.ToDouble(RES.GetData(1, 2), 0)}
+        CornOB = CornOB.Reshape(2, 4)
+        Dim RVec As New Mat
+        Dim TVec As New Mat
 
+        CvInvoke.SolvePnP(CObj3D, CornOB, KMat, Scal, RVec, TVec)
+        Dim RvecBytes As Byte() = RES.GetData
+        Dim rvec2 = {BitConverter.ToDouble(RVec.GetData(0, 0), 0), BitConverter.ToInt64(RVec.GetData(0, 1), 0), BitConverter.ToDouble(RVec.GetData(0, 2), 0)}
+        Dim tvec2 = {BitConverter.ToSingle(RES.GetData(1, 0), 0), BitConverter.ToSingle(RES.GetData(1, 1), 0), BitConverter.ToSingle(RES.GetData(1, 2), 0)}
+
+        Throw New Exception("Wrong Values!")
         Dim span_counts As New List(Of Integer) : For Each Entry In xcoords : span_counts.Add(Entry.Length) : Next
         Dim _params = np.hstack(Tuple.Create(rvec, tvec, cubic_slopes, ycoords)) ' + tuple.Create(xcoords))
         Return Tuple.Create(rough_dims, span_counts, _params)
