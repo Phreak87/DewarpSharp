@@ -185,20 +185,34 @@ Module page_dewarp
                                 {0, page_height, 0}}
 
         Dim CObj3D As Matrix(Of Double) = np.ToMatrix(corners_object3d)
-        Dim CornOB As Matrix(Of Double) = np.ToMatrix(corners)
-        Dim KMat As Matrix(Of Double) = np.ToMatrix(K)
-        Dim Scal As New Mat(5, 1, DepthType.Cv8U, 1)
+        Dim CamMat As Matrix(Of Double) = np.ToMatrix(K)
+        Dim Scal As New Mat(5, 1, DepthType.Cv32F, 1)
         Dim RES As New Mat
         Dim R As New Mat
 
-        CornOB = CornOB.Reshape(2, 4)
+        Dim ObjKD As New VectorOfPoint3D32F
+        Dim k1 As MCvPoint3D32f() = {New MCvPoint3D32f(K(0, 0), K(0, 1), K(0, 2))} : ObjKD.Push(k1)
+        Dim k2 As MCvPoint3D32f() = {New MCvPoint3D32f(K(1, 0), K(1, 1), K(1, 2))} : ObjKD.Push(k2)
+        Dim k3 As MCvPoint3D32f() = {New MCvPoint3D32f(K(2, 0), K(2, 1), K(2, 2))} : ObjKD.Push(k3)
+
+        Dim Obj3D As New VectorOfPoint3D32F
+        Dim C1 As MCvPoint3D32f() = {New MCvPoint3D32f(corners_object3d(0, 0), corners_object3d(0, 1), corners_object3d(0, 2))} : Obj3D.Push(C1)
+        Dim C2 As MCvPoint3D32f() = {New MCvPoint3D32f(corners_object3d(1, 0), corners_object3d(1, 1), corners_object3d(1, 2))} : Obj3D.Push(C2)
+        Dim C3 As MCvPoint3D32f() = {New MCvPoint3D32f(corners_object3d(2, 0), corners_object3d(2, 1), corners_object3d(2, 2))} : Obj3D.Push(C3)
+        Dim C4 As MCvPoint3D32f() = {New MCvPoint3D32f(corners_object3d(3, 0), corners_object3d(3, 1), corners_object3d(3, 2))} : Obj3D.Push(C4)
+
+        Dim Obj2D As New VectorOfPointF
+        Dim DP1 As Drawing.PointF() = {New Drawing.PointF(corners.Item1(0), corners.Item1(1))} : Obj2D.Push(DP1)
+        Dim DP2 As Drawing.PointF() = {New Drawing.PointF(corners.Item2(0), corners.Item2(1))} : Obj2D.Push(DP2)
+        Dim DP3 As Drawing.PointF() = {New Drawing.PointF(corners.Item3(0), corners.Item3(1))} : Obj2D.Push(DP3)
+        Dim DP4 As Drawing.PointF() = {New Drawing.PointF(corners.Item4(0), corners.Item4(1))} : Obj2D.Push(DP4)
+
         Dim RVec As New Mat
         Dim TVec As New Mat
 
-        CvInvoke.SolvePnP(CObj3D, CornOB, KMat, Scal, RVec, TVec)
-        Dim RvecBytes As Byte() = RES.GetData
-        Dim rvec2 = {BitConverter.ToDouble(RVec.GetData(0, 0), 0), BitConverter.ToInt64(RVec.GetData(0, 1), 0), BitConverter.ToDouble(RVec.GetData(0, 2), 0)}
-        Dim tvec2 = {BitConverter.ToSingle(RES.GetData(1, 0), 0), BitConverter.ToSingle(RES.GetData(1, 1), 0), BitConverter.ToSingle(RES.GetData(1, 2), 0)}
+        CvInvoke.SolvePnP(Obj3D, Obj2D, CamMat, Scal, RVec, TVec)
+        Dim rvec2 = {BitConverter.ToSingle(RVec.GetData(0, 0), 0), BitConverter.ToDouble(RVec.GetData(0, 1), 0), BitConverter.ToDouble(RVec.GetData(0, 2), 0)}
+        Dim tvec2 = {BitConverter.ToDouble(TVec.GetData(0, 0), 0), BitConverter.ToSingle(TVec.GetData(0, 1), 0), BitConverter.ToSingle(TVec.GetData(0, 2), 0)}
 
         Throw New Exception("Wrong Values!")
         Dim span_counts As New List(Of Integer) : For Each Entry In xcoords : span_counts.Add(Entry.Length) : Next
