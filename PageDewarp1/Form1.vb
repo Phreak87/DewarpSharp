@@ -13,7 +13,78 @@ Public Class Form1
     End Sub
 
     Private Sub Button1_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
-        Dim a = np.linspace(1, 2, 5)
+
+        Dim RVec As New Mat
+        Dim TVec As New Mat
+
+        'zer5 = np.zeros(5)
+        Dim Scal As New Mat(5, 1, DepthType.Cv32F, 1)
+        Dim Scal2 As New VectorOfDouble({0, 0, 0, 0, 0})
+
+        Dim Test3D1 As New VectorOfPoint3D32F({New MCvPoint3D32f(0.0, 0.0, 0.0),
+                                              New MCvPoint3D32f(1.2, 0.0, 0.0),
+                                              New MCvPoint3D32f(1.2, 1.8, 0.0),
+                                              New MCvPoint3D32f(0.0, 1.8, 0.0)})
+        Dim Test3D2 As Matrix(Of Double) = np.ToMatrix({{0.0, 0.0, 0.0},
+                                                       {1.2, 0.0, 0.0},
+                                                       {1.2, 1.8, 0.0},
+                                                       {0.0, 1.8, 0.0}})
+        ' Overloaded SolvePNP -> MCvPoint3D32f()
+        Dim Test3D3(3) As MCvPoint3D32f
+        Test3D3(0) = New MCvPoint3D32f(0.0, 0.0, 0.0)
+        Test3D3(1) = New MCvPoint3D32f(1.2, 0.0, 0.0)
+        Test3D3(2) = New MCvPoint3D32f(1.2, 1.8, 0.0)
+        Test3D3(3) = New MCvPoint3D32f(0.0, 1.8, 0.0)
+
+
+        Dim Test2D1 As New VectorOfVectorOfPointF({New VectorOfPointF({New PointF(-0.6, -0.9)}),
+                                                   New VectorOfPointF({New PointF(0.6, -0.9)}),
+                                                   New VectorOfPointF({New PointF(0.6, 0.9)}),
+                                                   New VectorOfPointF({New PointF(-0.6, 0.9)})
+                                                 })
+        Dim Test2D2 As New VectorOfPointF({New PointF(-0.6, -0.9),
+                                           New PointF(0.6, -0.9),
+                                           New PointF(0.6, 0.9),
+                                           New PointF(-0.6, 0.9)
+                                         })
+        ' Overloaded SolvePNP -> PointF()
+        Dim Test2D3(3) As Drawing.PointF
+        Test2D3(0) = New PointF(-0.6, -0.9)
+        Test2D3(1) = New PointF(0.6, -0.9)
+        Test2D3(2) = New PointF(0.6, 0.9)
+        Test2D3(3) = New PointF(-0.6, 0.9)
+
+        'Test2D4.Add(New Matrix(Of Double)({1, 2}))
+        'corners = np.array (           [
+        '                               [[-0.6, -0.9]], 
+        '                               [[ 0.6, -0.9]], 
+        '                               [[ 0.6,  0.9]], 
+        '                               [[-0.6,  0.9]]
+        '                              ])
+
+
+        'array(                      [
+        '                            [1.2, 0.0, 0.0 ], 
+        '                            [0.0, 1.2, 0.0 ], 
+        '                            [0.0, 0.0, 1.0 ]
+        '                            ]
+        Dim TestKD1 As New VectorOfPoint3D32F({New MCvPoint3D32f(1.2, 0.0, 0.0),
+                                              New MCvPoint3D32f(0.0, 1.2, 0.0),
+                                              New MCvPoint3D32f(0.0, 0.0, 1.0)})
+        Dim TestKD2 As Matrix(Of Double) = np.ToMatrix({{1.2, 0.0, 0.0},
+                                                       {0.0, 1.2, 0.0},
+                                                       {0.0, 0.0, 1.0}})
+
+        'Emgu.CV.CvInvoke.SolvePnP(Test3D1, Test2D1, TestKD2, Scal, RVec, TVec)
+
+        Emgu.CV.CvInvoke.SolvePnP(Test3D3, Test2D3, TestKD2, Scal, RVec, TVec)
+
+        Dim rvec2 = {BitConverter.ToDouble(RVec.GetData(0, 0), 0), BitConverter.ToDouble(RVec.GetData(0, 1), 0), BitConverter.ToDouble(RVec.GetData(0, 2), 0)}
+        Dim tvec2 = {BitConverter.ToDouble(TVec.GetData(0, 0), 0), BitConverter.ToDouble(TVec.GetData(0, 1), 0), BitConverter.ToDouble(TVec.GetData(0, 2), 0)}
+
+        'rvec: array([[ 1.41447611e-11], [-9.48072527e-12], [ 2.69760786e-15]])
+        'tvec: array([[-0.6       ], [-0.9       ], [ 1.20000005]])
+
         main()
     End Sub
 End Class
@@ -186,7 +257,6 @@ Module page_dewarp
 
         Dim CObj3D As Matrix(Of Double) = np.ToMatrix(corners_object3d)
         Dim CamMat As Matrix(Of Double) = np.ToMatrix(K)
-        Dim Scal As New Mat(5, 1, DepthType.Cv32F, 1)
         Dim RES As New Mat
         Dim R As New Mat
 
@@ -195,7 +265,7 @@ Module page_dewarp
         Dim k2 As MCvPoint3D32f() = {New MCvPoint3D32f(K(1, 0), K(1, 1), K(1, 2))} : ObjKD.Push(k2)
         Dim k3 As MCvPoint3D32f() = {New MCvPoint3D32f(K(2, 0), K(2, 1), K(2, 2))} : ObjKD.Push(k3)
 
-        Dim Obj3D As New VectorOfPoint3D32F
+        Dim Obj3D As New VectorOfPoint3D32F ' OK
         Dim C1 As MCvPoint3D32f() = {New MCvPoint3D32f(corners_object3d(0, 0), corners_object3d(0, 1), corners_object3d(0, 2))} : Obj3D.Push(C1)
         Dim C2 As MCvPoint3D32f() = {New MCvPoint3D32f(corners_object3d(1, 0), corners_object3d(1, 1), corners_object3d(1, 2))} : Obj3D.Push(C2)
         Dim C3 As MCvPoint3D32f() = {New MCvPoint3D32f(corners_object3d(2, 0), corners_object3d(2, 1), corners_object3d(2, 2))} : Obj3D.Push(C3)
@@ -210,9 +280,10 @@ Module page_dewarp
         Dim RVec As New Mat
         Dim TVec As New Mat
 
-        CvInvoke.SolvePnP(Obj3D, Obj2D, CamMat, Scal, RVec, TVec)
-        Dim rvec2 = {BitConverter.ToSingle(RVec.GetData(0, 0), 0), BitConverter.ToDouble(RVec.GetData(0, 1), 0), BitConverter.ToDouble(RVec.GetData(0, 2), 0)}
-        Dim tvec2 = {BitConverter.ToDouble(TVec.GetData(0, 0), 0), BitConverter.ToSingle(TVec.GetData(0, 1), 0), BitConverter.ToSingle(TVec.GetData(0, 2), 0)}
+        Dim Scal As New Mat(5, 1, DepthType.Cv32F, 1)
+        CvInvoke.SolvePnP(CObj3D, Obj2D, CamMat, Scal, RVec, TVec)
+        Dim rvec2 = {BitConverter.ToDouble(RVec.GetData(0, 0), 0), BitConverter.ToDouble(RVec.GetData(0, 1), 0), BitConverter.ToDouble(RVec.GetData(0, 2), 0)}
+        Dim tvec2 = {BitConverter.ToDouble(TVec.GetData(0, 0), 0), BitConverter.ToDouble(TVec.GetData(0, 1), 0), BitConverter.ToDouble(TVec.GetData(0, 2), 0)}
 
         Throw New Exception("Wrong Values!")
         Dim span_counts As New List(Of Integer) : For Each Entry In xcoords : span_counts.Add(Entry.Length) : Next

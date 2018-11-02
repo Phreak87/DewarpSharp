@@ -165,42 +165,6 @@ def draw_correspondences(img, dstpoints, projpts):
     return display
 
 
-def get_default_params(corners, ycoords, xcoords):
-
-    # page width and height
-    page_width = np.linalg.norm(corners[1] - corners[0])
-    page_height = np.linalg.norm(corners[-1] - corners[0])
-    rough_dims = (page_width, page_height)
-
-    # our initial guess for the cubic has no slope
-    cubic_slopes = [0.0, 0.0]
-
-    # object points of flat page in 3D coordinates
-    corners_object3d = np.array([
-        [0, 0, 0],
-        [page_width, 0, 0],
-        [page_width, page_height, 0],
-        [0, page_height, 0]])
-
-    # estimate rotation and translation from four 2D-to-3D point
-    # correspondences
-    _, rvec, tvec = cv2.solvePnP(corners_object3d,
-                                 corners, K, np.zeros(5))
-
-    span_counts = [len(xc) for xc in xcoords]
-    
-    rVec = np.array(rvec).flatten()
-    tVec = np.array(tvec).flatten()
-    slopes = np.array(cubic_slopes).flatten()
-
-    params = np.hstack((np.array(rvec).flatten(),
-                        np.array(tvec).flatten(),
-                        np.array(cubic_slopes).flatten(),
-                        ycoords.flatten()) +
-                       tuple(xcoords))
-
-    return rough_dims, span_counts, params
-
 
 def project_xy(xy_coords, pvec):
 
@@ -853,6 +817,45 @@ def remap_image(name, img, small, page_dims, params):
     return threshfile
 
 
+def get_default_params(corners, ycoords, xcoords):
+
+    # page width and height
+    page_width = np.linalg.norm(corners[1] - corners[0])
+    page_height = np.linalg.norm(corners[-1] - corners[0])
+    rough_dims = (page_width, page_height)
+
+    # our initial guess for the cubic has no slope
+    cubic_slopes = [0.0, 0.0]
+
+    # object points of flat page in 3D coordinates
+    corners_object3d = np.array([
+        [0, 0, 0],
+        [page_width, 0, 0],
+        [page_width, page_height, 0],
+        [0, page_height, 0]])
+
+    zer5 = np.zeros(5)
+
+    # estimate rotation and translation from four 2D-to-3D point
+    # correspondences
+    _, rvec, tvec = cv2.solvePnP(corners_object3d,
+                                 corners, K,zer5 )
+
+    span_counts = [len(xc) for xc in xcoords]
+    
+    rVec = np.array(rvec).flatten()
+    tVec = np.array(tvec).flatten()
+    slopes = np.array(cubic_slopes).flatten()
+
+    params = np.hstack((np.array(rvec).flatten(),
+                        np.array(tvec).flatten(),
+                        np.array(cubic_slopes).flatten(),
+                        ycoords.flatten()) +
+                       tuple(xcoords))
+
+    return rough_dims, span_counts, params
+
+
 def main():
     sys.argv = ["wordcount.py", "test.jpg"]
     if len(sys.argv) < 2:
@@ -863,6 +866,12 @@ def main():
         cv2.namedWindow(WINDOW_NAME)
 
     outfiles = []
+
+    zer5 = np.zeros(5)
+    corners = np.array (  [[[-0.6, -0.9]], [[ 0.6, -0.9]], [[ 0.6,  0.9]], [[-0.6,  0.9]]])
+    corners_object3d = np.array([ [0, 0, 0], [1.2, 0, 0], [1.2, 1.8, 0], [0, 1.8, 0]])
+
+    _, rvec, tvec = cv2.solvePnP(corners_object3d, corners, K,zer5 )
 
     for imgfile in sys.argv[1:]:
 
